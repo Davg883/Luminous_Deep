@@ -1,0 +1,58 @@
+@import "tailwindcss";
+
+:root {
+  /* Seagrove Palette (Global) */
+  --sand: #fdfcf8;
+  --sea: #3e5c76;
+  --driftwood: #4a4a4a;
+  --mist: #eef2f6;
+
+  /* Domain: Study (Moonlight & Paper) */
+  --study-bg: #0f172a;
+  --study-paper: #f1e7d0;
+  --study-ink: #2c2c2c;
+
+  /* Domain: Workshop (Cork & Projection) */
+  --workshop-bg: #e5e5e5;
+  --workshop-accent: #d97706;
+  --workshop-surface: #ffffff;
+
+  /* Domain: Boathouse (Timber & Blueprint) */
+  --boat-bg: #0c0a09;
+  --boat-line: #3e5c76;
+  --boat-glow: #f59e0b;
+
+  --background: var(--sand);
+  --foreground: var(--driftwood);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --color-sand: var(--sand);
+  --color-sea: var(--sea);
+  --color-driftwood: var(--driftwood);
+  --color-mist: var(--mist);
+
+  --color-study-bg: var(--study-bg);
+  --color-study-paper: var(--study-paper);
+  --color-study-ink: var(--study-ink);
+
+  --color-workshop-bg: var(--workshop-bg);
+  --color-workshop-accent: var(--workshop-accent);
+  --color-workshop-surface: var(--workshop-surface);
+
+  --color-boat-bg: var(--boat-bg);
+  --color-boat-line: var(--boat-line);
+  --color-boat-glow: var(--boat-glow);
+
+  --font-sans: var(--font-inter);
+  --font-serif: var(--font-libre);
+  --font-mono: var(--font-jetbrains);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}

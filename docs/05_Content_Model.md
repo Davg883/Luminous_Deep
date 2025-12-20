@@ -1,0 +1,5 @@
+# Content Model (VectisONE)
+- Scenes (Workshop, Study, Boathouse)
+- Objects (Hotspots)
+- Reveals (Payloads)
+- Chapters (Long form)
