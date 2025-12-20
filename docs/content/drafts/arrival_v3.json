@@ -1,0 +1,22 @@
+{
+    "hotspot_id": "home_arrival_intro_v3",
+    "domain": "Home",
+    "scene_id": "home",
+    "hotspot_title": "A New View",
+    "reveal_type": "text",
+    "body_copy": "Look! There it is. The house is waiting, leaning a little toward the sea as if listening for a secret. Can you hear the creak of the wood? The windows look like eyes. Someone has been busy here—there are lights in the workshop and books on the desk. Don't just stand there, let's see what's inside!",
+    "hint_line": "The door handles are shaped like waves.",
+    "tags": [
+        "curiosity",
+        "arrival",
+        "explorative"
+    ],
+    "canon_refs": [
+        "the_house"
+    ],
+    "media_refs": "LD_Home/Arrival_Background",
+    "status": "Draft",
+    "version": 1,
+    "last_reviewed_by": "planner_agent",
+    "canon_check_result": "Pass"
+}

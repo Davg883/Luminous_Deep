@@ -1,0 +1,23 @@
+{
+    "hotspot_id": "home_arrival_intro_v2",
+    "domain": "Home",
+    "scene_id": "home",
+    "hotspot_title": "Landing Site",
+    "reveal_type": "text",
+    "body_copy": "Coordinates confirmed: Seagrove Bay. The tide is coming in, pushing gently against the wooden pilings of the dock. The structure ahead—The Living House—is operational. Power is active in the upper rooms. Entry is permitted through the main portal. Begin your survey of the interior. Maintain structural awareness.",
+    "hint_line": "Entry point: Main Doorway.",
+    "tags": [
+        "technical",
+        "arrival",
+        "systems"
+    ],
+    "canon_refs": [
+        "seagrove_bay",
+        "the_house"
+    ],
+    "media_refs": "LD_Home/Arrival_Background",
+    "status": "Draft",
+    "version": 1,
+    "last_reviewed_by": "planner_agent",
+    "canon_check_result": "Pass"
+}

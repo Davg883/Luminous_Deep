@@ -1,0 +1,23 @@
+{
+    "hotspot_id": "study_journal_v2",
+    "domain": "Study",
+    "scene_id": "study-desk",
+    "hotspot_title": "Logbook 001",
+    "reveal_type": "text",
+    "body_copy": "Observation Log. Location: Main Study Desk. The air temperature is optimal for paper preservation. I have indexed the first fourteen cabinets. Eleanor insists we call this a 'journal', but its primary function is historical audit. Note for the visitor: Ensure all objects are returned to their designated coordinates. The systems of this house depend on order.",
+    "hint_line": "The ink is dry, but the handwriting is meticulous.",
+    "tags": [
+        "systems",
+        "julian",
+        "technical"
+    ],
+    "canon_refs": [
+        "leather_journal",
+        "julian_voice"
+    ],
+    "media_refs": "LD_Study/Journal_Open",
+    "status": "Draft",
+    "version": 1,
+    "last_reviewed_by": "planner_agent",
+    "canon_check_result": "Pass"
+}

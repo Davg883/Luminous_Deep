@@ -50,12 +50,21 @@ export default defineSchema({
             v.literal("cassie"),
             v.literal("eleanor"),
             v.literal("julian"),
+            v.literal("sparkline"),
+            v.literal("hearth"),
+            v.literal("systems"),
             v.literal("neutral")
         )),
+
         tone: v.optional(v.string()),
         estimatedTime: v.optional(v.number()),
         tags: v.optional(v.array(v.string())),
+        role: v.optional(v.string()), // e.g. 'canon', 'clue', 'flavor'
+        status: v.optional(v.union(v.literal("draft"), v.literal("review"), v.literal("published"))),
+        publishedAt: v.optional(v.number()),
     }),
+
+
 
     chapters: defineTable({
         slug: v.string(),
@@ -63,4 +72,46 @@ export default defineSchema({
         content: v.string(),
         status: v.union(v.literal("draft"), v.literal("published")),
     }).index("by_slug", ["slug"]),
+
+    contentPacks: defineTable({
+        hotspotId: v.string(),
+        domain: v.string(),
+        sceneId: v.id("scenes"),
+        title: v.string(),
+        revealType: v.string(),
+        bodyCopy: v.string(),
+        hintLine: v.optional(v.string()),
+        tags: v.array(v.string()),
+        canonRefs: v.array(v.string()),
+        mediaRefs: v.string(),
+        status: v.union(v.literal("Draft"), v.literal("Review"), v.literal("Published")),
+        version: v.number(),
+        lastReviewedBy: v.optional(v.string()),
+        canonCheckResult: v.optional(v.string()),
+        // Audit fields
+        importedBy: v.string(), // Clerk userId
+        sourceFile: v.optional(v.string()),
+    }).index("by_scene", ["sceneId"]).index("by_hotspot", ["hotspotId"]),
+
+    contentPacksHistory: defineTable({
+        packId: v.id("contentPacks"),
+        hotspotId: v.string(),
+        data: v.any(), // Snapshot of the pack data
+        archivedAt: v.number(),
+        archivedBy: v.string(),
+    }).index("by_pack", ["packId"]).index("by_hotspot", ["hotspotId"]),
+
+    media: defineTable({
+        publicId: v.string(),
+        url: v.string(),
+        resourceType: v.string(), // image, video, raw
+        folder: v.string(),
+        format: v.string(),
+        bytes: v.number(),
+        width: v.optional(v.number()),
+        height: v.optional(v.number()),
+    }).index("by_public_id", ["publicId"]),
 });
+
+
+

@@ -1,0 +1,23 @@
+{
+    "hotspot_id": "study_journal_v1",
+    "domain": "Study",
+    "scene_id": "study-desk",
+    "hotspot_title": "The Leather Journal",
+    "reveal_type": "text",
+    "body_copy": "October 14th. The fog has finally lifted from the bay. I spent the morning pressing a wild orchid I found by the boathouse—it's a deep, bruised violet color. Julian says the weather is changing, but I find comfort in the shift. If you are reading this, you are the first guest we've had in a long while. Please, move softly through the Hearth. The memories here are delicate.",
+    "hint_line": "A pressed flower falls from between the pages.",
+    "tags": [
+        "hearth",
+        "eleanor",
+        "memory"
+    ],
+    "canon_refs": [
+        "leather_journal",
+        "eleanor_voice"
+    ],
+    "media_refs": "LD_Study/Journal_Open",
+    "status": "Draft",
+    "version": 1,
+    "last_reviewed_by": "planner_agent",
+    "canon_check_result": "Pass"
+}

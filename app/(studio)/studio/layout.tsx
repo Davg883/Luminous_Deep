@@ -4,6 +4,7 @@ import { UserButton } from "@clerk/nextjs";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
+import { SyncMediaButton } from "@/components/studio/SyncMediaButton";
 
 export default function StudioLayout({
     children,
@@ -14,9 +15,10 @@ export default function StudioLayout({
 
     const navItems = [
         { label: "Dashboard", href: "/studio" },
-        { label: "Scenes", href: "/studio/scenes" },
+        { label: "Content Factory", href: "/studio/content" },
         { label: "Media Library", href: "/studio/media" }, // Placeholder
     ];
+
 
     return (
         <div className="flex min-h-screen bg-gray-50 text-gray-900 font-sans">
@@ -44,12 +46,14 @@ export default function StudioLayout({
                     ))}
                 </nav>
 
-                <div className="p-4 border-t border-gray-100">
-                    <div className="flex items-center gap-3">
+                <div className="p-4 border-t border-gray-100 space-y-4">
+                    <SyncMediaButton />
+                    <div className="flex items-center gap-3 pt-4 border-t border-gray-50">
                         <UserButton afterSignOutUrl="/" />
-                        <span className="text-sm text-gray-600">Admin User</span>
+                        <span className="text-sm text-gray-600 font-bold">Admin</span>
                     </div>
                 </div>
+
             </aside>
 
             {/* Main Content */}

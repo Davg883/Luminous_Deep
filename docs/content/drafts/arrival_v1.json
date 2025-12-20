@@ -1,0 +1,23 @@
+{
+    "hotspot_id": "home_arrival_intro_v1",
+    "domain": "Home",
+    "scene_id": "home",
+    "hotspot_title": "The Arrival",
+    "reveal_type": "text",
+    "body_copy": "You stand on the edge of the water. Seagrove Bay is still, its surface a mirror for the fading light. Ahead, the house sits perched on the rocks, windows beginning to glow with a warm, amber invitation. This is not just a building; it is a repository of things lost and found. Approach the door. The air smells of salt and old paper.",
+    "hint_line": "The door is heavy, but it yields to a steady hand.",
+    "tags": [
+        "intro",
+        "atmosphere",
+        "arrival"
+    ],
+    "canon_refs": [
+        "seagrove_bay",
+        "the_house"
+    ],
+    "media_refs": "LD_Home/Arrival_Background",
+    "status": "Draft",
+    "version": 1,
+    "last_reviewed_by": "planner_agent",
+    "canon_check_result": "Pass"
+}

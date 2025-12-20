@@ -1,8 +1,9 @@
 "use node";
 
-import { internalAction } from "../_generated/server";
+import { internalAction, internalMutation, action } from "../_generated/server";
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
+import { requireStudioAccessAction } from "../auth/helpers";
 import { v2 as cloudinary } from "cloudinary";
 
 export const syncCloudinaryAssets = internalAction({
@@ -16,59 +17,86 @@ export const syncCloudinaryAssets = internalAction({
         });
 
         // 2. Fetch Assets
-        // Note: 'Luminous Deep site images' might need exact syntax if spaces are involved
-        // Search expression: folder="Luminous Deep site images" AND resource_type:image
         const result = await cloudinary.search
-            .expression('folder="Luminous Deep site images"')
-            .max_results(50)
+            .expression('folder="Luminous Deep site images" OR folder="LD_Home" OR folder="LD_Study" OR folder="LD_Workshop" OR folder="LD_Boathouse"')
+            .max_results(200)
             .execute();
 
         const assets = result.resources;
-        const updates: { slug: string; url: string; source: string }[] = [];
-
-        // 3. Map Results
+        const updates: any[] = [];
 
         for (const asset of assets) {
+            // Save to media table
+            await ctx.runMutation(internal.studio.media.upsertMediaRecord, {
+                publicId: asset.public_id,
+                url: asset.secure_url,
+                resourceType: asset.resource_type,
+                folder: asset.folder,
+                format: asset.format,
+                bytes: asset.bytes,
+                width: asset.width,
+                height: asset.height,
+            });
+
             const filename = asset.filename;
             let matchedSlug: string | null = null;
-
-            // --- STRATEGY A: Standard V1 Regex ---
-            // Format: LD_<Place>_<Type>_...
             const standardMatch = filename.match(/^LD_([A-Za-z]+)_([A-Za-z]+)/i);
 
             if (standardMatch) {
                 const place = standardMatch[1].toLowerCase();
                 const type = standardMatch[2].toLowerCase();
-
-                // Map place to domain slug
                 if (place === 'workshop') matchedSlug = 'workshop';
                 else if (place === 'study') matchedSlug = 'study';
                 else if (place === 'boathouse') matchedSlug = 'boathouse';
                 else if (place === 'home' || place === 'seagrove') matchedSlug = 'home';
 
-                // Only update background if type is 'scene' or 'zone'
-                if (matchedSlug && (type !== 'scene' && type !== 'zone')) {
-                    matchedSlug = null; // Ignore objects/reveals for scene background sync
+                if (matchedSlug && (type === 'scene' || type === 'zone')) {
+                    await ctx.runMutation(internal.public.scenes.updateSceneMedia, {
+                        slug: matchedSlug,
+                        mediaUrl: asset.secure_url,
+                    });
+                    updates.push({ slug: matchedSlug, url: asset.secure_url });
                 }
-            }
-
-            // --- STRATEGY B: Legacy Keyword Fallback ---
-            if (!matchedSlug) {
-                if (filename.toLowerCase().includes("cassie")) matchedSlug = "workshop";
-                else if (filename.toLowerCase().includes("eleanor")) matchedSlug = "study";
-                else if (filename.toLowerCase().includes("julian")) matchedSlug = "boathouse";
-            }
-
-            if (matchedSlug) {
-                // 4. Update Convex
-                await ctx.runMutation(internal.public.scenes.updateSceneMedia, {
-                    slug: matchedSlug,
-                    mediaUrl: asset.secure_url,
-                });
-                updates.push({ slug: matchedSlug, url: asset.secure_url, source: standardMatch ? "Standard V1" : "Legacy" });
             }
         }
 
-        return { status: "success", updates };
+        return { status: "success", count: assets.length, updates };
     },
 });
+
+export const upsertMediaRecord = internalMutation({
+    args: {
+        publicId: v.string(),
+        url: v.string(),
+        resourceType: v.string(),
+        folder: v.string(),
+        format: v.string(),
+        bytes: v.number(),
+        width: v.optional(v.number()),
+        height: v.optional(v.number()),
+    },
+    handler: async (ctx: any, args: any) => {
+        const existing = await ctx.db
+            .query("media")
+            .withIndex("by_public_id", (q: any) => q.eq("publicId", args.publicId))
+            .first();
+
+
+        if (existing) {
+            await ctx.db.patch(existing._id, args);
+        } else {
+            await ctx.db.insert("media", args);
+        }
+    },
+});
+
+export const syncMedia = action({
+    args: {},
+    handler: async (ctx: any) => {
+        await requireStudioAccessAction(ctx);
+        return await ctx.runAction(internal.studio.media.syncCloudinaryAssets, {});
+    },
+});
+
+
+

@@ -1,0 +1,23 @@
+{
+    "hotspot_id": "study_journal_v3",
+    "domain": "Study",
+    "scene_id": "study-desk",
+    "hotspot_title": "The Scribble Book",
+    "reveal_type": "text",
+    "body_copy": "I found a blank page! I think this book is for big thoughts, but all I have are small questions. Like, why does the lighthouse pulse three times instead of two? And where did Julian put the blue ink? If you're new here, you're the first person besides us to see the workbench mess. Don't tell Eleanor I drew a little cat in the margin of the index.",
+    "hint_line": "A small ink smudge shaped like a paw print is visible.",
+    "tags": [
+        "sparkline",
+        "cassie",
+        "curiosity"
+    ],
+    "canon_refs": [
+        "leather_journal",
+        "cassie_voice"
+    ],
+    "media_refs": "LD_Study/Journal_Open",
+    "status": "Draft",
+    "version": 1,
+    "last_reviewed_by": "planner_agent",
+    "canon_check_result": "Pass"
+}
