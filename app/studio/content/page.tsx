@@ -66,46 +66,60 @@ export default function ContentFactoryPage() {
             // Clean up markdown block
             let cleanJson = refinedJson.replace(/```json/g, '').replace(/```/g, '').trim();
 
-            // Robust JSON Repair Strategy
-            try {
-                JSON.parse(cleanJson);
-            } catch (e) {
-                console.warn("JSON Parse Failed. Attempting repair...");
-                // Naive repair: if it ends with " or ] or }, it might just be missing the closing brace
-                // If it ends with "tags": [ ... ], it needs }
-                // If it ends properly but missing }, add }
-                if (!cleanJson.endsWith("}")) {
-                    if (cleanJson.endsWith("]")) {
-                        cleanJson += "}";
-                    } else if (cleanJson.endsWith('"')) {
-                        cleanJson += "}"; // Very naive, but covers simple object truncation
-                    } else {
-                        // Try aggressively closing
-                        cleanJson += "}";
-                    }
-                }
-            }
-
+            // 1. UPDATE EDITOR IMMEDIATELY (Safety Net)
             setJsonInput(cleanJson);
 
-            // Auto-Switch Scene Context
+            // 2. ATTEMPT PARSE & REPAIR
+            let parsedData;
             try {
-                const parsed = JSON.parse(cleanJson);
-                const data = Array.isArray(parsed) ? parsed[0] : parsed;
-                const slug = data.scene_slug || data.sceneSlug || data.domain;
+                parsedData = JSON.parse(cleanJson);
+            } catch (e) {
+                console.warn("JSON Parse Failed. Attempting repair...");
+                try {
+                    // Try repairing common truncation issues
+                    if (!cleanJson.endsWith("}")) {
+                        let repairAttempt = cleanJson;
+                        if (cleanJson.endsWith("]")) {
+                            repairAttempt += "}";
+                        } else if (cleanJson.endsWith('"')) {
+                            repairAttempt += "}";
+                        } else {
+                            repairAttempt += "}";
+                        }
 
-                if (slug && scenes) {
-                    const matchedScene = (scenes as any[]).find(s => s.slug === slug || s.domain.toLowerCase() === slug.toLowerCase());
-                    if (matchedScene && matchedScene._id !== selectedSceneId) {
-                        console.log("Auto-switching scene context to:", matchedScene.slug);
-                        setSelectedSceneId(matchedScene._id);
+                        // Parse repaired version
+                        parsedData = JSON.parse(repairAttempt);
+
+                        // If successful, update editor with repaired version
+                        cleanJson = repairAttempt;
+                        setJsonInput(cleanJson);
+                        console.log("Auto-repair successful:", cleanJson);
                     }
+                } catch (e2) {
+                    console.error("Auto-repair failed. User must fix manually.", e2);
+                    return; // Stop here, but text is already in the box
                 }
-            } catch (err) {
-                console.warn("Could not parse JSON for auto-scene switch", err);
             }
 
-            // Force validation to update preview
+            // 3. AUTO-SWITCH SCENE (If we have valid data)
+            if (parsedData) {
+                try {
+                    const data = Array.isArray(parsedData) ? parsedData[0] : parsedData;
+                    const slug = data.scene_slug || data.sceneSlug || data.domain;
+
+                    if (slug && scenes) {
+                        const matchedScene = (scenes as any[]).find(s => s.slug === slug || s.domain.toLowerCase() === slug.toLowerCase());
+                        if (matchedScene && matchedScene._id !== selectedSceneId) {
+                            console.log("Auto-switching scene context to:", matchedScene.slug);
+                            setSelectedSceneId(matchedScene._id);
+                        }
+                    }
+                } catch (err) {
+                    console.warn("Scene Switch logic skipped", err);
+                }
+            }
+
+            // 4. FORCE VALIDATION (Updates Preview)
             validateJson(cleanJson);
 
         } catch (e: any) {
