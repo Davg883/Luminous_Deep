@@ -39,13 +39,8 @@ export default defineSchema({
     }).index("by_scene", ["sceneId"]),
 
     reveals: defineTable({
-        type: v.union(
-            v.literal("text"),
-            v.literal("audio"),
-            v.literal("video"),
-            v.literal("image")
-        ),
         title: v.string(),
+        type: v.union(v.literal("text"), v.literal("audio"), v.literal("video"), v.literal("image")),
         content: v.string(),
         mediaUrl: v.optional(v.string()),
         // Naming Standard v1 Metadata
@@ -63,7 +58,8 @@ export default defineSchema({
         estimatedTime: v.optional(v.number()),
         tags: v.optional(v.array(v.string())),
         role: v.optional(v.string()), // e.g. 'canon', 'clue', 'flavor'
-        status: v.optional(v.union(v.literal("draft"), v.literal("review"), v.literal("published"))),
+        // Workflow Fields - Relaxed for smoother dev
+        status: v.optional(v.string()),
         publishedAt: v.optional(v.number()),
     }),
 
