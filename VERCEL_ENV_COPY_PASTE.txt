@@ -1,0 +1,20 @@
+# --- Vercel Environment Variables (COPY & PASTE) ---
+
+# 1. Core Configuration
+NEXT_PUBLIC_CONVEX_URL=https://perfect-buffalo-974.convex.cloud
+CONVEX_DEPLOYMENT=prod:perfect-buffalo-974
+
+# 2. Authentication (Clerk)
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_Y2xlcmsuY2xlcmsuY29tJ... 
+# (Note: I only recovered a partial key 'pk_test_...'. 
+# CHECK YOUR CLERK DASHBOARD FOR THE FULL KEY starting with pk_test_)
+
+CLERK_SECRET_KEY=sk_test_... 
+# (You must retrieve this from your Clerk Dashboard > API Keys)
+
+# 3. Deployment (REQUIRED for Build)
+CONVEX_DEPLOY_KEY= 
+# (Generate this at https://dashboard.convex.dev > Settings > Deploy Keys)
+
+# 4. Optional / Legacy
+CLOUDINARY_CLOUD_NAME=dptqx

@@ -4,7 +4,7 @@ import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import SceneStage from "@/components/narrative/SceneStage";
 import Atmosphere from "@/components/layout/Atmosphere";
-import TheDock from "@/components/layout/TheDock";
+import Link from "next/link";
 
 export default function Home() {
     const scene = useQuery(api.public.scenes.getScene, { slug: "home" });
@@ -21,17 +21,78 @@ export default function Home() {
         <main className="relative w-full h-screen overflow-hidden">
             <Atmosphere domain="home" />
 
-            <SceneStage mediaUrl={scene.backgroundMediaUrl}>
-            </SceneStage>
+            {/* Video Background */}
+            <SceneStage mediaUrl={scene.backgroundMediaUrl} />
 
-            {/* The Arrival Line */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
-                <h1 className="font-serif text-2xl md:text-3xl text-driftwood opacity-60 italic tracking-widest text-center max-w-2xl leading-relaxed animate-in fade-in duration-1000 slide-in-from-bottom-4">
-                    "You’ve arrived at a place where intelligence slows down enough to be understood."
+            {/* Glassmorphic Gradient Vignette - Left side contrast */}
+            <div
+                className="absolute inset-0 z-10 pointer-events-none"
+                style={{
+                    background: 'linear-gradient(to right, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.35) 35%, transparent 60%)',
+                }}
+            />
+
+            {/* Hero Typography Overlay */}
+            <div className="absolute inset-0 z-20 flex flex-col justify-center p-12 md:p-16 lg:p-20">
+                {/* Main Headline */}
+                <h1
+                    className="font-serif text-5xl md:text-6xl lg:text-7xl text-white leading-tight tracking-tight animate-in fade-in slide-in-from-left-4 duration-1000"
+                    style={{
+                        textShadow: '0 4px 24px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.3)',
+                    }}
+                >
+                    The Luminous Deep
                 </h1>
+
+                {/* Sub-headline */}
+                <p
+                    className="font-sans text-lg md:text-xl text-white/80 mt-4 md:mt-6 max-w-xl tracking-wide leading-relaxed animate-in fade-in slide-in-from-left-4 duration-1000 delay-200"
+                    style={{
+                        textShadow: '0 2px 12px rgba(0,0,0,0.3)',
+                    }}
+                >
+                    Stories, systems, and quiet intelligence from the edge of the island.
+                </p>
+
+                {/* Invitation Navigation */}
+                <nav className="mt-10 md:mt-14 flex items-center gap-4 md:gap-6 animate-in fade-in slide-in-from-left-4 duration-1000 delay-500">
+                    <Link
+                        href="/workshop"
+                        className="font-serif text-lg md:text-xl text-white hover:text-sea transition-colors duration-300"
+                        style={{ textShadow: '0 2px 8px rgba(0,0,0,0.3)' }}
+                    >
+                        Begin
+                    </Link>
+
+                    <span className="text-white/40 select-none">•</span>
+
+                    <Link
+                        href="/study"
+                        className="font-serif text-lg md:text-xl text-white hover:text-sea transition-colors duration-300"
+                        style={{ textShadow: '0 2px 8px rgba(0,0,0,0.3)' }}
+                    >
+                        The Journey
+                    </Link>
+
+                    <span className="text-white/40 select-none">•</span>
+
+                    <Link
+                        href="/boathouse"
+                        className="font-serif text-lg md:text-xl text-white hover:text-sea transition-colors duration-300"
+                        style={{ textShadow: '0 2px 8px rgba(0,0,0,0.3)' }}
+                    >
+                        Listen
+                    </Link>
+                </nav>
             </div>
 
-            <TheDock />
+            {/* Subtle bottom gradient for depth */}
+            <div
+                className="absolute bottom-0 left-0 right-0 h-32 z-10 pointer-events-none"
+                style={{
+                    background: 'linear-gradient(to top, rgba(0,0,0,0.3) 0%, transparent 100%)',
+                }}
+            />
         </main>
     );
 }

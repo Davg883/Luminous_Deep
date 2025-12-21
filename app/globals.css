@@ -99,4 +99,17 @@ body {
   .foveal-focus {
     @apply transition-all duration-700 ease-in-out;
   }
+
+  /* Hidden scrollbar for glass aesthetic */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    /* IE and Edge */
+    scrollbar-width: none;
+    /* Firefox */
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+    /* Chrome, Safari, Opera */
+  }
 }
