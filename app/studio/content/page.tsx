@@ -55,9 +55,6 @@ export default function ContentFactoryPage() {
         if (!jsonInput) return;
         setIsProcessingAI(true);
         try {
-            // The prompt is now dynamically handled by convex/studio/ai.ts based on format
-            // If it's pure text, the backend will treat it as a "Convert to JSON" task.
-            // If it's JSON, the backend will treat it as a "Refine" task.
             console.log("Sending prompt to AI:", jsonInput);
 
             const refinedJson = await generateContent({
@@ -66,10 +63,30 @@ export default function ContentFactoryPage() {
             });
             console.log("AI Response Raw:", refinedJson);
 
-            // Clean up markdown block if present (redundant check, but safe)
+            // Clean up markdown block
             const cleanJson = refinedJson.replace(/```json/g, '').replace(/```/g, '').trim();
             setJsonInput(cleanJson);
+
+            // Auto-Switch Scene Context
+            try {
+                const parsed = JSON.parse(cleanJson);
+                const data = Array.isArray(parsed) ? parsed[0] : parsed;
+                const slug = data.scene_slug || data.sceneSlug || data.domain;
+
+                if (slug && scenes) {
+                    const matchedScene = (scenes as any[]).find(s => s.slug === slug || s.domain.toLowerCase() === slug.toLowerCase());
+                    if (matchedScene && matchedScene._id !== selectedSceneId) {
+                        console.log("Auto-switching scene context to:", matchedScene.slug);
+                        setSelectedSceneId(matchedScene._id);
+                    }
+                }
+            } catch (err) {
+                console.warn("Could not parse JSON for auto-scene switch", err);
+            }
+
+            // Force validation to update preview
             validateJson(cleanJson);
+
         } catch (e: any) {
             console.error("AI PROCESS ERROR:", e);
             alert(`AI Error: ${e.message || "Unknown error"}. Input has NOT been modified.`);
