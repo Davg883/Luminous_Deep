@@ -75,8 +75,9 @@ export const syncCloudinaryAssets = internalAction({
 
             return { status: "success", count: assets.length, updates };
         } catch (e: any) {
-            console.error("CRITICAL SYNC ERROR:", e);
-            throw new Error("Sync failed: " + e.message);
+            console.error("CRITICAL SYNC ERROR:", JSON.stringify(e, null, 2));
+            const msg = e.error?.message || e.message || "Unknown error";
+            throw new Error(`Sync failed: ${msg}`);
         }
     },
 });
