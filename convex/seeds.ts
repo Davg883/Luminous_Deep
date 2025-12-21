@@ -61,6 +61,21 @@ async function upsertSceneFull(ctx: any, slug: string, title: string, domain: st
 }
 
 
+
+export const wipeAll = mutation({
+    args: {},
+    handler: async (ctx) => {
+        const tables = ["scenes", "objects", "reveals", "contentPacks", "contentPacksHistory", "media", "chapters"];
+        for (const table of tables) {
+            const docs = await ctx.db.query(table as any).collect();
+            for (const doc of docs) {
+                await ctx.db.delete(doc._id);
+            }
+        }
+        return "Database Wiped";
+    },
+});
+
 export const seedWorkshop = mutation({
     args: {},
     handler: async (ctx) => {
