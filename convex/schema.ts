@@ -67,8 +67,6 @@ export default defineSchema({
         publishedAt: v.optional(v.number()),
     }),
 
-
-
     chapters: defineTable({
         slug: v.string(),
         title: v.string(),
@@ -115,6 +113,3 @@ export default defineSchema({
         height: v.optional(v.number()),
     }).index("by_public_id", ["publicId"]),
 });
-
-
-
