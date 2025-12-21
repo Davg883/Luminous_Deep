@@ -14,16 +14,36 @@ export default function SceneEditor() {
 
     const scene = useQuery(api.studio.scenes.getScene, { slug });
     const addObject = useMutation(api.studio.scenes.addObject);
+    const updateScene = useMutation(api.studio.scenes.updateScene);
     const deleteObject = useMutation(api.studio.scenes.deleteObject);
-
     // Editing State
     const [selectedPoint, setSelectedPoint] = useState<{ x: number, y: number } | null>(null);
     const [newItemName, setNewItemName] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [manualMediaUrl, setManualMediaUrl] = useState("");
     const stageRef = useRef<HTMLDivElement>(null);
 
     if (scene === undefined) return <div className="p-10">Loading Scene Editor...</div>;
     if (scene === null) return <div className="p-10">Scene not found: {slug}</div>;
+
+    const handleUpdateMedia = async () => {
+        if (!manualMediaUrl) return;
+        setIsSubmitting(true);
+        try {
+            await updateScene({
+                id: scene._id,
+                title: scene.title,
+                domain: scene.domain,
+                backgroundMediaUrl: manualMediaUrl
+            });
+            alert("Media updated!");
+            setManualMediaUrl("");
+        } catch (e: any) {
+            alert(`Update Failed: ${e.message}`);
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
 
     const handleStageClick = (e: React.MouseEvent<HTMLDivElement>) => {
         if (!stageRef.current) return;
@@ -190,17 +210,40 @@ export default function SceneEditor() {
                                         className="text-gray-400 hover:text-red-500 p-1 opacity-0 group-hover:opacity-100 transition-opacity"
                                         title="Delete Object"
                                     >
-                                        🗑️
+                                        ×
                                     </button>
                                 </div>
                             ))}
-                            {scene.objects.length === 0 && (
-                                <p className="text-gray-400 text-xs text-center italic mt-10">No objects placed yet.</p>
-                            )}
+                            {scene.objects.length === 0 && <p className="text-center text-gray-400 text-xs italic">No objects placed yet.</p>}
+                        </div>
+                    </div>
+
+                    {/* Manual Media Override */}
+                    <div className="p-4 border-t border-gray-200 bg-gray-50">
+                        <label className="text-[10px] font-bold text-gray-500 uppercase mb-2 block">Force Background Media</label>
+                        <div className="flex gap-2">
+                            <input
+                                type="text"
+                                className="flex-1 border border-gray-300 rounded px-2 py-1 text-xs"
+                                placeholder="Paste Cloudinary URL..."
+                                value={manualMediaUrl}
+                                onChange={(e) => setManualMediaUrl(e.target.value)}
+                            />
+                            <button
+                                onClick={handleUpdateMedia}
+                                disabled={isSubmitting || !manualMediaUrl}
+                                className="bg-indigo-600 text-white text-xs font-bold px-3 py-1 rounded hover:bg-indigo-700 disabled:opacity-50"
+                            >
+                                Save
+                            </button>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
+    );
+                </div >
+            </div >
+        </div >
     );
 }
