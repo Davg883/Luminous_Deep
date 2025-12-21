@@ -15,10 +15,13 @@ export default defineSchema({
             v.literal("workshop"),
             v.literal("study"),
             v.literal("boathouse"),
-            v.literal("home")
+            v.literal("home"),
+            v.literal("lounge"),
+            v.literal("kitchen")
         ),
         backgroundMediaUrl: v.string(),
         isPublished: v.boolean(),
+        playbackSpeed: v.optional(v.number()),
         // Naming Standard v1 Metadata
         variant: v.optional(v.string()),
         tags: v.optional(v.array(v.string())),

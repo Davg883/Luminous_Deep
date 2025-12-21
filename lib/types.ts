@@ -1,6 +1,6 @@
 import { Id } from "@/convex/_generated/dataModel";
 
-export type Domain = "workshop" | "study" | "boathouse" | "home";
+export type Domain = "workshop" | "study" | "boathouse" | "home" | "lounge" | "kitchen";
 export type RevealType = "text" | "audio" | "video" | "image";
 export type ChapterStatus = "draft" | "published";
 
@@ -20,6 +20,7 @@ export interface Scene {
     domain: Domain;
     backgroundMediaUrl: string;
     isPublished: boolean;
+    playbackSpeed?: number;
 }
 
 export interface SceneObject {

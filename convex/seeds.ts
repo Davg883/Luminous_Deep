@@ -2,7 +2,7 @@ import { mutation } from "./_generated/server";
 import { v } from "convex/values";
 
 // Helper to seed a scene
-async function upsertSceneFull(ctx: any, slug: string, title: string, domain: string, bgUrl: string, objects: any[], tags?: string[]) {
+async function upsertSceneFull(ctx: any, slug: string, title: string, domain: string, bgUrl: string, objects: any[], tags?: string[], playbackSpeed?: number) {
     // 1. Scene
     let scene = await ctx.db
         .query("scenes")
@@ -15,7 +15,8 @@ async function upsertSceneFull(ctx: any, slug: string, title: string, domain: st
         await ctx.db.patch(sceneId, {
             backgroundMediaUrl: bgUrl || scene.backgroundMediaUrl,
             domain: domain as any,
-            tags: tags || scene.tags
+            tags: tags || scene.tags,
+            playbackSpeed: playbackSpeed
         });
     } else {
         sceneId = await ctx.db.insert("scenes", {
@@ -24,7 +25,8 @@ async function upsertSceneFull(ctx: any, slug: string, title: string, domain: st
             domain: domain as any,
             backgroundMediaUrl: bgUrl || "",
             isPublished: true,
-            tags: tags || []
+            tags: tags || [],
+            playbackSpeed: playbackSpeed
         });
     }
 
@@ -190,7 +192,58 @@ export const seedAll = mutation({
             ["nature"]
         );
 
-        return "Initial Canon Seeded via seedAll (Home, Study, Workshop, Boathouse)";
+        // 5. Lounge (Hearth)
+        await upsertSceneFull(
+            ctx,
+            "lounge",
+            "The Hearth",
+            "lounge",
+            "",
+            [
+                {
+                    name: "Embers",
+                    x: 50, y: 50,
+                    role: "canon",
+                    revealType: "text",
+                    revealTitle: "Fading Warmth",
+                    revealContent: "The fire has died down to a dull glow. The silence here is heavy, weighted by the years of conversations that no longer happen.",
+                    hint: "Stare into the fire",
+                    voice: "hearth",
+                    revealTags: ["mood", "canon"],
+                    status: "published",
+                    publishedAt: Date.now(),
+                }
+            ],
+            ["warmth"],
+            0.5 // playbackSpeed
+        );
+
+        // 6. Kitchen (Utility)
+        await upsertSceneFull(
+            ctx,
+            "kitchen",
+            "The Galley",
+            "kitchen",
+            "",
+            [
+                {
+                    name: "Kettle",
+                    x: 40, y: 60,
+                    role: "canon",
+                    revealType: "text",
+                    revealTitle: "Morning Ritual",
+                    revealContent: "The kettle whistles, a sharp piercing sound that cuts through the morning fog. It's the only reliable thing in this house.",
+                    hint: "Check the kettle",
+                    voice: "systems",
+                    revealTags: ["routine", "canon"],
+                    status: "published",
+                    publishedAt: Date.now(),
+                }
+            ],
+            ["utility"]
+        );
+
+        return "Initial Canon Seeded via seedAll (Home, Study, Workshop, Boathouse, Lounge, Kitchen)";
     }
 });
 

@@ -24,6 +24,15 @@
   --boat-line: #3e5c76;
   --boat-glow: #f59e0b;
 
+  /* Domain: Lounge (Hearth) */
+  --lounge-bg: #1c1917;
+  --lounge-accent: #b45309;
+  --lounge-text: #e7e5e4;
+
+  /* Domain: Kitchen (Utility) */
+  --kitchen-bg: #1e293b;
+  --kitchen-accent: #38bdf8;
+
   --background: var(--sand);
   --foreground: var(--driftwood);
 }
@@ -48,6 +57,13 @@
   --color-boat-bg: var(--boat-bg);
   --color-boat-line: var(--boat-line);
   --color-boat-glow: var(--boat-glow);
+
+  --color-lounge-bg: var(--lounge-bg);
+  --color-lounge-accent: var(--lounge-accent);
+  --color-lounge-text: var(--lounge-text);
+
+  --color-kitchen-bg: var(--kitchen-bg);
+  --color-kitchen-accent: var(--kitchen-accent);
 
   --font-sans: var(--font-inter);
   --font-serif: var(--font-libre);

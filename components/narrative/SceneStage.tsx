@@ -1,16 +1,24 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ReactNode } from "react";
+import { ReactNode, useRef, useEffect } from "react";
 import Image from "next/image";
 
 interface SceneStageProps {
     mediaUrl?: string; // Optional for now, fallback to placeholder
     children?: ReactNode;
     isFocused?: boolean;
+    playbackSpeed?: number;
 }
 
-export default function SceneStage({ mediaUrl, children, isFocused = false }: SceneStageProps) {
+export default function SceneStage({ mediaUrl, children, isFocused = false, playbackSpeed = 1.0 }: SceneStageProps) {
+    const videoRef = useRef<HTMLVideoElement>(null);
+
+    useEffect(() => {
+        if (videoRef.current) {
+            videoRef.current.playbackRate = playbackSpeed;
+        }
+    }, [playbackSpeed, mediaUrl]);
 
     return (
         <div className="relative w-full h-screen overflow-hidden bg-stone-900 border-b border-driftwood/20">
@@ -29,6 +37,7 @@ export default function SceneStage({ mediaUrl, children, isFocused = false }: Sc
                         <div className="w-full h-full bg-slate-900 animate-pulse" />
                     ) : mediaUrl.match(/\.(mp4|webm|mov)$/i) ? (
                         <video
+                            ref={videoRef}
                             src={mediaUrl}
                             autoPlay
                             muted

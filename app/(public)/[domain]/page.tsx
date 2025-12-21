@@ -18,7 +18,7 @@ export default function DomainPage() {
     const domain = (params.domain as string);
 
     // Strict Domain Validation
-    const validDomains = ["workshop", "study", "boathouse", "home"];
+    const validDomains = ["workshop", "study", "boathouse", "home", "lounge", "kitchen"];
     if (!validDomains.includes(domain)) {
         // If we are mistakenly catching 'studio' or other routes, let's explicit fail
         return <div className="p-10 text-red-500">Invalid Domain: {domain}</div>;
@@ -53,7 +53,11 @@ export default function DomainPage() {
             <Atmosphere domain={validatedDomain} />
 
             {/* Main Stage */}
-            <SceneStage mediaUrl={scene.backgroundMediaUrl} isFocused={!!activeRevealId}>
+            <SceneStage
+                mediaUrl={scene.backgroundMediaUrl}
+                isFocused={!!activeRevealId}
+                playbackSpeed={scene.playbackSpeed}
+            >
                 {objects?.map((obj) => (
                     <ObjectTrigger
                         key={obj._id}
