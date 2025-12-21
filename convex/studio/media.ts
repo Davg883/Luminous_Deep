@@ -16,9 +16,12 @@ export const syncCloudinaryAssets = internalAction({
             api_secret: process.env.CLOUDINARY_API_SECRET,
         });
 
-        // 2. Fetch Assets
+        // 2. Fetch Assets (Global Search for "LD_")
+        // We now search for any public_id starting with "LD_" OR specific folders, to be safe.
+        // Also getting both images and video in sorted order.
         const result = await cloudinary.search
-            .expression('folder="Luminous Deep site images" OR folder="LD_Home" OR folder="LD_Study" OR folder="LD_Workshop" OR folder="LD_Boathouse"')
+            .expression('public_id:LD_* OR folder="Luminous Deep site images"')
+            .sort_by('created_at', 'desc')
             .max_results(200)
             .execute();
 

@@ -242,8 +242,4 @@ export default function SceneEditor() {
             </div>
         </div>
     );
-                </div >
-            </div >
-        </div >
-    );
 }
