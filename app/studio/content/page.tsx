@@ -521,7 +521,7 @@ export default function ContentFactoryPage() {
                                         <h3 className="font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">{pack.title}</h3>
                                         <p className="text-xs text-gray-500 font-mono uppercase tracking-tight">{pack.domain} / {(scenes || []).find((s: any) => s._id === pack.sceneId)?.title}</p>
                                     </div>
-                                    <span className="bg-yellow-100 text-yellow-800 text-[10px] font-black px-2 py-0.5 rounded">IN REVIEW</span>
+                                    <span className="bg-yellow-100 text-yellow-800 text-[10px] font-black px-2 py-0.5 rounded">NEEDS REVIEW</span>
                                 </div>
                                 <p className="text-sm text-gray-600 line-clamp-3 mb-4 leading-relaxed italic">"{pack.bodyCopy}"</p>
                                 <div className="flex justify-end gap-2">

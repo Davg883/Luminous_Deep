@@ -64,11 +64,11 @@ export function ContentPreview({ pack, sceneTitle, sceneBackgroundUrl }: { pack:
             {/* High Fidelity Environment */}
             <div className="flex-1 relative overflow-hidden bg-black group">
                 {/* 1. Atmosphere Layer */}
-                <Atmosphere domain={displayDomain} className="absolute" />
+                <Atmosphere domain={displayDomain} className="absolute inset-0 pointer-events-none" />
 
-                {/* 2. Embedded Reveal Card */}
-                <div className="absolute inset-0 flex items-center justify-center p-8 z-10">
-                    <div className="w-full max-w-md max-h-full">
+                {/* 2. Embedded Reveal Card (Scrollable) */}
+                <div className="absolute inset-0 z-10 overflow-y-auto custom-scrollbar p-8 flex flex-col items-center">
+                    <div className="w-full max-w-md my-auto">
                         <RevealCard
                             title={displayTitle}
                             content={displayBody}
@@ -83,7 +83,7 @@ export function ContentPreview({ pack, sceneTitle, sceneBackgroundUrl }: { pack:
                 </div>
 
                 {/* 3. Mini-Scene Map (Coordinate Check) */}
-                <div className="absolute bottom-4 right-4 w-32 h-24 bg-black/50 backdrop-blur-md border border-white/20 rounded-lg overflow-hidden shadow-2xl opacity-50 group-hover:opacity-100 transition-opacity">
+                <div className="absolute bottom-4 right-4 w-32 h-24 bg-black/50 backdrop-blur-md border border-white/20 rounded-lg overflow-hidden shadow-2xl opacity-50 group-hover:opacity-100 transition-opacity z-20 pointer-events-none">
                     {sceneBackgroundUrl ? (
                         <div className="relative w-full h-full">
                             <img src={sceneBackgroundUrl} alt="Context" className="w-full h-full object-cover opacity-50 grayscale" />
@@ -119,11 +119,9 @@ export function ContentPreview({ pack, sceneTitle, sceneBackgroundUrl }: { pack:
                     <p className="text-gray-400 mb-1 uppercase font-bold text-[9px]">Status</p>
                     <span className={clsx(
                         "px-2 py-0.5 rounded-full font-bold",
-                        displayStatus === "Published" ? "bg-green-100 text-green-800" :
-                            displayStatus === "Review" ? "bg-yellow-100 text-yellow-800" :
-                                "bg-blue-100 text-blue-800"
+                        displayStatus === "Published" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"
                     )}>
-                        {displayStatus.toUpperCase()}
+                        {displayStatus === "Published" ? "PUBLISHED" : "NEEDS REVIEW"}
                     </span>
                 </div>
                 <div>
