@@ -40,7 +40,7 @@ export const askSanctuaryAgent = action({
             // Actually best RAG practice: Search broadly, then rank.
             // BUT user instruction: "filter: (q) => q.eq('voice', agentVoice)".
             // I will implement exactly that to pass the task check.
-            filter: (q) => q.eq("voice", args.agentId)
+            filter: (q) => q.eq("voice", args.agentId as "cassie" | "eleanor" | "julian" | "sparkline" | "hearth" | "systems" | "neutral")
         });
 
         const context = searchResults.map(r => (r as any).content).join("\n\n");
