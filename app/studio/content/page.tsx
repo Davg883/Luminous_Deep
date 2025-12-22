@@ -347,11 +347,11 @@ export default function ContentFactoryPage() {
                                 onClick={async () => {
                                     setIsSyncing(true);
                                     try {
-                                        await triggerReindex({});
-                                        // Simple toast fallback or just alert for now since we don't have a toast component context here
-                                        alert("🧠 Neural pathways syncing...");
-                                    } catch (e) {
-                                        alert("Sync failed.");
+                                        const result = await triggerReindex({});
+                                        alert(`✅ ${result}`);
+                                    } catch (e: any) {
+                                        console.error("Reindex Error:", e);
+                                        alert(`❌ Sync Failed: ${e.message || e.data || JSON.stringify(e)}`);
                                     } finally {
                                         setTimeout(() => setIsSyncing(false), 2000);
                                     }
