@@ -444,9 +444,9 @@ export default function ContentFactoryPage() {
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     <span className={clsx("px-2 py-0.5 rounded text-[10px] font-black uppercase",
-                                                        displayStatus === "Published" ? "bg-green-100 text-green-700" :
-                                                            displayStatus === "Unlinked" ? "bg-purple-100 text-purple-700" :
-                                                                displayStatus === "Review" ? "bg-yellow-100 text-yellow-700" : "bg-blue-100 text-blue-700"
+                                                        (displayStatus?.toLowerCase() === "published") ? "bg-green-100 text-green-700" :
+                                                            (displayStatus?.toLowerCase() === "unlinked") ? "bg-purple-100 text-purple-700" :
+                                                                (displayStatus?.toLowerCase().includes("review")) ? "bg-yellow-100 text-yellow-700" : "bg-blue-100 text-blue-700"
                                                     )}>{displayStatus}</span>
                                                 </td>
                                                 <td className="px-4 py-3 text-xs text-gray-500">
@@ -555,8 +555,11 @@ export default function ContentFactoryPage() {
                                             setPublishingIds(prev => new Set(prev).add(pack._id));
                                             try {
                                                 await publishPack({ id: pack._id });
-                                                // Alert is intrusive but requested
+                                                // Success Toast (Temporary)
                                                 // alert(`Published "${pack.title}" successfully.`);
+
+                                                // Switch to Library to show the green status immediately
+                                                setActiveTab("Library");
                                             } catch (err) {
                                                 console.error(err);
                                                 alert("Publishing failed. Check console.");

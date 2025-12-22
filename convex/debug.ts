@@ -1,4 +1,4 @@
-import { internalMutation } from "./_generated/server";
+import { internalMutation, mutation } from "./_generated/server";
 
 export const fixStatusCasing = internalMutation({
     args: {},
@@ -12,5 +12,18 @@ export const fixStatusCasing = internalMutation({
             }
         }
         return `Processed ${reveals.length} reveals. Fixed ${fixed} casing issues.`;
+    }
+});
+
+export const forceAlignStatuses = mutation({
+    args: {},
+    handler: async (ctx) => {
+        const reveals = await ctx.db.query("reveals").collect();
+        let updated = 0;
+        for (const reveal of reveals) {
+            await ctx.db.patch(reveal._id, { status: "published" });
+            updated++;
+        }
+        return `Updated ${updated} reveals to status: published.`;
     }
 });
