@@ -2,24 +2,22 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { X, ChevronDown } from "lucide-react";
+import { X } from "lucide-react";
 
-interface RoomNode {
+interface RoomZone {
     id: string;
     label: string;
     path: string;
-    top: string;
-    left: string;
-    align: "left" | "right" | "center";
+    className: string; // Tailwind positioning classes
 }
 
-const mapNodes: RoomNode[] = [
-    { id: "study", label: "The Study", path: "/study", top: "25%", left: "25%", align: "right" },
-    { id: "boathouse", label: "Boathouse", path: "/boathouse", top: "20%", left: "75%", align: "left" },
-    { id: "lounge", label: "The Hearth", path: "/lounge", top: "45%", left: "40%", align: "center" },
-    { id: "workshop", label: "Workshop", path: "/workshop", top: "40%", left: "15%", align: "right" },
-    { id: "kitchen", label: "Kitchen", path: "/kitchen", top: "60%", left: "70%", align: "left" },
-    { id: "home", label: "Arrival", path: "/home", top: "85%", left: "50%", align: "center" },
+const rooms: RoomZone[] = [
+    { id: "workshop", label: "The Workshop", path: "/workshop", className: "top-[32%] left-[12%] w-[15%] h-[20%]" },
+    { id: "lounge", label: "The Hearth", path: "/lounge", className: "top-[42%] left-[42%] w-[18%] h-[25%]" },
+    { id: "study", label: "The Study", path: "/study", className: "top-[15%] left-[58%] w-[12%] h-[15%]" },
+    { id: "kitchen", label: "The Galley", path: "/kitchen", className: "top-[22%] left-[72%] w-[10%] h-[15%]" },
+    { id: "boathouse", label: "The Boathouse", path: "/boathouse", className: "top-[32%] left-[85%] w-[12%] h-[20%]" },
+    { id: "luminous-deep", label: "Control Room", path: "/luminous-deep", className: "top-[75%] left-[42%] w-[15%] h-[15%]" }
 ];
 
 interface RoomSelectorProps {
@@ -31,83 +29,62 @@ export default function RoomSelector({ isOpen, onClose }: RoomSelectorProps) {
     return (
         <AnimatePresence>
             {isOpen && (
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.5 }}
-                    className="fixed inset-0 z-[60] flex items-center justify-center overflow-hidden"
-                >
+                <div className="fixed inset-0 z-[60] flex items-center justify-center overflow-hidden">
                     {/* Dark Backdrop */}
-                    <div className="absolute inset-0 bg-black/90 backdrop-blur-xl" onClick={onClose} />
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="absolute inset-0 bg-black/80 backdrop-blur-md"
+                        onClick={onClose}
+                    />
 
                     {/* Close Button */}
                     <button
                         onClick={onClose}
-                        className="absolute top-8 right-8 text-white/50 hover:text-white transition-colors z-50"
+                        className="absolute top-8 right-8 text-white/50 hover:text-white transition-colors z-[70]"
                     >
                         <X size={32} strokeWidth={1} />
                     </button>
 
-                    {/* Map Container */}
+                    {/* Map Container - Paper Unfold Effect */}
                     <motion.div
-                        initial={{ scale: 0.95, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        exit={{ scale: 0.95, opacity: 0 }}
-                        transition={{ duration: 0.6, ease: "easeOut" }}
-                        className="relative w-full max-w-4xl aspect-[4/3] md:aspect-video select-none"
+                        initial={{ scaleY: 0.8, opacity: 0, filter: "blur(10px)" }}
+                        animate={{ scaleY: 1, opacity: 1, filter: "blur(0px)" }}
+                        exit={{ scaleY: 0.9, opacity: 0, filter: "blur(10px)" }}
+                        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }} // Elegant ease
+                        className="relative w-[95vw] md:w-[85vw] max-w-6xl aspect-[16/9] select-none"
                     >
-                        {/* Floorplan Image (Placeholder) */}
+                        {/* Floorplan Image */}
                         <div
-                            className="absolute inset-0 bg-[url('/assets/floorplan_placeholder.webp')] bg-contain bg-center bg-no-repeat opacity-20"
-                            style={{ filter: "invert(1) drop-shadow(0 0 20px rgba(255,255,255,0.2))" }}
+                            className="absolute inset-0 bg-contain bg-center bg-no-repeat"
+                            style={{
+                                backgroundImage: "url('https://res.cloudinary.com/dptqxjhb8/image/upload/v1766417877/sanctuary_map_phqqnv.png')",
+                                filter: "drop-shadow(0 20px 50px rgba(0,0,0,0.5))"
+                            }}
                         />
 
-                        {/* Room Nodes */}
-                        {mapNodes.map((node, i) => (
+                        {/* Room Zones */}
+                        {rooms.map((room) => (
                             <Link
-                                key={node.id}
-                                href={node.path}
+                                key={room.id}
+                                href={room.path}
                                 onClick={onClose}
-                                className="absolute group"
-                                style={{
-                                    top: node.top,
-                                    left: node.left,
-                                    transform: "translate(-50%, -50%)"
-                                }}
+                                className={`absolute group cursor-pointer ${room.className}`}
                             >
-                                <motion.div
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: 0.2 + (i * 0.1) }}
-                                    className={`flex flex-col ${node.align === 'left' ? 'items-start' : node.align === 'right' ? 'items-end' : 'items-center'}`}
-                                >
-                                    {/* Dot Marker */}
-                                    <div className="w-2 h-2 rounded-full bg-white mb-2 group-hover:scale-150 group-hover:bg-amber-400 transition-all duration-300 shadow-[0_0_10px_rgba(255,255,255,0.5)]" />
+                                {/* Hit Area Hover Highlight */}
+                                <div className="absolute inset-0 bg-amber-500/0 group-hover:bg-amber-500/10 transition-colors duration-500 rounded-lg blur-sm" />
 
-                                    {/* Label */}
-                                    <span className="font-serif text-lg md:text-2xl text-white/60 group-hover:text-white transition-colors duration-300 whitespace-nowrap">
-                                        {node.label}
+                                {/* Floating Label */}
+                                <div className="absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-500 transform translate-y-2 group-hover:translate-y-0 text-center pointer-events-none whitespace-nowrap z-20">
+                                    <span className="font-serif text-amber-100 text-lg tracking-wide drop-shadow-md bg-black/60 px-3 py-1 rounded-full backdrop-blur-sm border border-white/10">
+                                        {room.label}
                                     </span>
-                                </motion.div>
+                                </div>
                             </Link>
                         ))}
-
-                        {/* Deep Descent Link */}
-                        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-full text-center">
-                            <Link
-                                href="/luminous-deep"
-                                onClick={onClose}
-                                className="group inline-flex flex-col items-center gap-2 text-sky-500/50 hover:text-sky-400 transition-colors duration-500"
-                            >
-                                <span className="font-sans text-[10px] tracking-[0.3em] uppercase opacity-70 group-hover:opacity-100">
-                                    Below the Foundation
-                                </span>
-                                <ChevronDown className="w-4 h-4 animate-bounce opacity-50 group-hover:opacity-100" />
-                            </Link>
-                        </div>
                     </motion.div>
-                </motion.div>
+                </div>
             )}
         </AnimatePresence>
     );

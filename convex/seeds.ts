@@ -244,6 +244,13 @@ export const seedAll = mutation({
                     role: "transition",
                     destinationSlug: "/luminous-deep",
                     hint: "Descent"
+                },
+                {
+                    name: "Path to Home",
+                    x: 15, y: 60,
+                    role: "transition",
+                    destinationSlug: "/home",
+                    hint: "Return to Home"
                 }
             ],
             ["nature"]
