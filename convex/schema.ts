@@ -238,6 +238,11 @@ export default defineSchema({
         bytes: v.number(),
         width: v.optional(v.number()),
         height: v.optional(v.number()),
-    }).index("by_public_id", ["publicId"]),
+        // Visual Bible: Mark assets for AI reference
+        isVisualBible: v.optional(v.boolean()),
+        tags: v.optional(v.array(v.string())),
+        // SynthID: AI-generation verification
+        synthIdStatus: v.optional(v.string()),
+    }).index("by_public_id", ["publicId"]).index("by_visual_bible", ["isVisualBible"]),
 });
 
