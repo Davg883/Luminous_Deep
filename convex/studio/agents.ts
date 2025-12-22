@@ -13,7 +13,7 @@ export const listAgents = query({
         // Enrich with space information
         const enrichedAgents = await Promise.all(
             agents.map(async (agent) => {
-                const space = await ctx.db.get(agent.homeSpaceId);
+                const space = agent.homeSpaceId ? await ctx.db.get(agent.homeSpaceId) : null;
                 return {
                     ...agent,
                     homeSpace: space ? {
@@ -35,7 +35,7 @@ export const getAgent = query({
         const agent = await ctx.db.get(id);
         if (!agent) return null;
 
-        const space = await ctx.db.get(agent.homeSpaceId);
+        const space = agent.homeSpaceId ? await ctx.db.get(agent.homeSpaceId) : null;
         return {
             ...agent,
             homeSpace: space ? {
