@@ -451,8 +451,9 @@ export default function ContentFactoryPage() {
                                                             <button
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
-                                                                    // Default to workshop for placement if unknown
-                                                                    const targetSlug = reveal.linkedSceneName ? "workshop" : "workshop";
+                                                                    // Redirect logic: Reveal Slug -> Selected Dropdown -> Workshop
+                                                                    const fallbackSlug = (scenes || []).find((s: any) => s._id === selectedSceneId)?.slug || "workshop";
+                                                                    const targetSlug = reveal.scene_slug || fallbackSlug;
                                                                     router.push(`/studio/content/${targetSlug}?placeReveal=${reveal._id}`);
                                                                 }}
                                                                 className="text-xs bg-orange-100 text-orange-700 px-2 py-1.5 rounded font-bold hover:bg-orange-200 flex items-center gap-1 transition-colors"

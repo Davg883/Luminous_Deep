@@ -44,12 +44,19 @@ export const listAllReveals = query({
                 sceneName = scene?.title || "Unknown Scene";
             }
 
+            let scene_slug = "home";
+            if (reveal.spaceId) {
+                const space = await ctx.db.get(reveal.spaceId);
+                scene_slug = space?.slug || "home";
+            }
+
             return {
                 ...reveal,
                 isLinked,
                 linkedObjectId: linkedObject?._id || null,
                 linkedSceneName: sceneName,
                 linkedObjectName: linkedObject?.name || null,
+                scene_slug,
             };
         }));
 
@@ -183,6 +190,7 @@ export const publishPack = mutation({
             role: "canon",
             status: "published",
             publishedAt: Date.now(),
+            spaceId: pack.sceneId,
         });
 
         // 3. Create the Object
