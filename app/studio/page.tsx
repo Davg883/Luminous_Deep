@@ -45,6 +45,7 @@ function formatRelativeTime(ts: number, now: number): string {
 export default function StudioDashboard() {
     const packs = useQuery(api.studio.content.listPacks);
     const scenes = useQuery(api.studio.scenes.getAllScenes);
+    const agents = useQuery(api.public.scenes.listAgents);
     const recentRuns = useQuery((api as any).studio?.runs?.getRecentRuns ?? api.studio.content.listPacks, { limit: 10 }) as Run[] | undefined;
 
     // Track current time for relative timestamps (client-side only to avoid hydration mismatch)
@@ -102,6 +103,41 @@ export default function StudioDashboard() {
                     <span className="text-white font-bold text-lg">Import New Content</span>
                     <span className="text-indigo-200 text-xs mt-1">JSON Packs / Bulk Upload</span>
                 </Link>
+            </div>
+
+            {/* Secondary Stats Row */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                    <div className="text-sm font-bold text-gray-400 uppercase tracking-widest">Active Agents</div>
+                    <div className="text-4xl font-black text-indigo-600 mt-2">{agents?.length || 0}</div>
+                    <div className="mt-4 text-xs font-bold text-indigo-700 bg-indigo-50 inline-block px-2 py-1 rounded">
+                        AI CHARACTERS
+                    </div>
+                </div>
+
+                <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                    <div className="text-sm font-bold text-gray-400 uppercase tracking-widest">Scenes</div>
+                    <div className="text-4xl font-black text-sky-600 mt-2">{scenes?.length || 0}</div>
+                    <div className="mt-4 text-xs font-bold text-sky-700 bg-sky-50 inline-block px-2 py-1 rounded">
+                        ROOMS IN HOUSE
+                    </div>
+                </div>
+
+                <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                    <div className="text-sm font-bold text-gray-400 uppercase tracking-widest">Draft Content</div>
+                    <div className="text-4xl font-black text-amber-600 mt-2">{stats?.drafts || 0}</div>
+                    <div className="mt-4 text-xs font-bold text-amber-700 bg-amber-50 inline-block px-2 py-1 rounded">
+                        IN PROGRESS
+                    </div>
+                </div>
+
+                <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                    <div className="text-sm font-bold text-gray-400 uppercase tracking-widest">Total Packs</div>
+                    <div className="text-4xl font-black text-gray-600 mt-2">{packs?.length || 0}</div>
+                    <div className="mt-4 text-xs font-bold text-gray-500 bg-gray-100 inline-block px-2 py-1 rounded">
+                        ALL CONTENT
+                    </div>
+                </div>
             </div>
 
             {/* Live System Feed */}
