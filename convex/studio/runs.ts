@@ -237,3 +237,55 @@ export const getRunsByStatus = query({
             .take(20);
     },
 });
+
+// Internal version of logToRun for use by actions
+export const logToRunInternal = internalMutation({
+    args: {
+        runId: v.id("runs"),
+        message: v.string(),
+        level: v.union(v.literal("info"), v.literal("warn"), v.literal("error"), v.literal("debug")),
+        stepOrder: v.optional(v.number()),
+    },
+    handler: async (ctx, { runId, message, level, stepOrder }) => {
+        const run = await ctx.db.get(runId);
+        if (!run) return; // Silently fail if run not found (telemetry is non-critical)
+
+        const newLog = {
+            timestamp: Date.now(),
+            stepOrder: stepOrder || run.logs.length + 1,
+            message,
+            level,
+        };
+
+        await ctx.db.patch(runId, {
+            logs: [...run.logs, newLog],
+        });
+
+        return runId;
+    },
+});
+
+// Get the latest run (for live HUD feed)
+export const getLatestRun = query({
+    args: {},
+    handler: async (ctx) => {
+        const runs = await ctx.db
+            .query("runs")
+            .order("desc")
+            .take(1);
+        return runs[0] || null;
+    },
+});
+
+// Get latest running run (for active animation)
+export const getActiveRun = query({
+    args: {},
+    handler: async (ctx) => {
+        const runs = await ctx.db
+            .query("runs")
+            .withIndex("by_status", (q) => q.eq("status", "running"))
+            .order("desc")
+            .take(1);
+        return runs[0] || null;
+    },
+});

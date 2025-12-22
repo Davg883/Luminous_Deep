@@ -1,8 +1,9 @@
 "use client";
 
 import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import { motion, AnimatePresence } from "framer-motion";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import clsx from "clsx";
 import {
     Terminal,
@@ -30,7 +31,7 @@ interface RunLog {
 
 interface Run {
     _id: Id<"runs">;
-    workflowId: Id<"workflows">;
+    workflowName?: string;
     status: "pending" | "running" | "completed" | "failed" | "cancelled";
     logs: RunLog[];
     startedAt: number;
@@ -77,31 +78,68 @@ export default function AgentHUD({
     // Initialize as null to avoid hydration mismatch - will be set client-side only
     const [currentTime, setCurrentTime] = useState<Date | null>(null);
     const [terminalLines, setTerminalLines] = useState<string[]>([]);
+    const terminalRef = useRef<HTMLDivElement>(null);
 
-    // Simulated terminal output (would connect to real runs data)
+    // ═══════════════════════════════════════════════════════════════
+    // LIVE RUN SUBSCRIPTION - Real AI telemetry
+    // ═══════════════════════════════════════════════════════════════
+    const latestRun = useQuery((api as any).studio.runs.getLatestRun, {});
+    const activeRun = useQuery((api as any).studio.runs.getActiveRun, {});
+    const isAIActive = activeRun?.status === "running";
+
+    // Process live run logs into terminal lines
     useEffect(() => {
-        const bootSequence = [
-            "> LUMINOUS DEEP CONTROL v0.1.0",
-            "> Initializing agent subsystems...",
-            "> JULIAN [ONLINE] :: Boathouse",
-            "> ELEANOR [ONLINE] :: Study",
-            "> CASSIE [ONLINE] :: Workshop",
-            "> All systems nominal.",
-            "> Awaiting instructions...",
-        ];
+        if (latestRun?.logs) {
+            const runLines = latestRun.logs.map((log: RunLog) => {
+                const prefix = log.level === "error" ? "✖ " :
+                    log.level === "warn" ? "⚠ " :
+                        log.level === "debug" ? "  " : "> ";
+                return `${prefix}${log.message}`;
+            });
 
-        let lineIndex = 0;
-        const interval = setInterval(() => {
-            if (lineIndex < bootSequence.length) {
-                setTerminalLines(prev => [...prev, bootSequence[lineIndex]]);
-                lineIndex++;
-            } else {
-                clearInterval(interval);
-            }
-        }, 400);
+            // Boot sequence + live logs
+            const bootLines = [
+                "> LUMINOUS DEEP CONTROL v0.1.0",
+                "> Initializing agent subsystems...",
+            ];
 
-        return () => clearInterval(interval);
-    }, []);
+            setTerminalLines([...bootLines, ...runLines]);
+        }
+    }, [latestRun]);
+
+    // Auto-scroll terminal to bottom
+    useEffect(() => {
+        if (terminalRef.current) {
+            terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
+        }
+    }, [terminalLines]);
+
+    // Boot sequence fallback (if no runs yet)
+    useEffect(() => {
+        if (!latestRun) {
+            const bootSequence = [
+                "> LUMINOUS DEEP CONTROL v0.1.0",
+                "> Initializing agent subsystems...",
+                "> JULIAN [ONLINE] :: Boathouse",
+                "> ELEANOR [ONLINE] :: Study",
+                "> CASSIE [ONLINE] :: Workshop",
+                "> All systems nominal.",
+                "> Awaiting instructions...",
+            ];
+
+            let lineIndex = 0;
+            const interval = setInterval(() => {
+                if (lineIndex < bootSequence.length) {
+                    setTerminalLines(prev => [...prev, bootSequence[lineIndex]]);
+                    lineIndex++;
+                } else {
+                    clearInterval(interval);
+                }
+            }, 400);
+
+            return () => clearInterval(interval);
+        }
+    }, [latestRun]);
 
     // Clock updater - only starts after mount to avoid hydration mismatch
     useEffect(() => {
@@ -188,17 +226,26 @@ export default function AgentHUD({
                         </div>
 
                         {/* Terminal Content */}
-                        <div className="h-48 overflow-y-auto scrollbar-hide space-y-1">
+                        <div ref={terminalRef} className="h-48 overflow-y-auto scrollbar-hide space-y-1">
                             {terminalLines.map((line, idx) => (
                                 <motion.div
-                                    key={idx}
+                                    key={`${idx}-${line.substring(0, 20)}`}
                                     initial={{ opacity: 0, x: -10 }}
                                     animate={{ opacity: 1, x: 0 }}
                                     className={clsx(
-                                        "text-xs leading-relaxed",
+                                        "text-xs leading-relaxed font-mono",
+                                        // Voice-specific coloring
+                                        line.includes("JULIAN:") && "text-sky-400",
+                                        line.includes("ELEANOR:") && "text-amber-100",
+                                        line.includes("CASSIE:") && "text-amber-400",
+                                        line.includes("NEUTRAL:") && "text-zinc-300",
+                                        // Status-based coloring
                                         line.includes("[ONLINE]") && "text-emerald-400",
-                                        line.includes(">") && !line.includes("[") && "text-[var(--deep-text)]",
-                                        !line.includes("[ONLINE]") && !line.startsWith(">") && "text-zinc-400"
+                                        line.startsWith("✖") && "text-red-400",
+                                        line.startsWith("⚠") && "text-amber-400",
+                                        // Default
+                                        !line.includes(":") && line.includes(">") && "text-[var(--deep-text)]",
+                                        !line.includes(":") && !line.startsWith(">") && !line.startsWith("✖") && !line.startsWith("⚠") && "text-zinc-500"
                                     )}
                                 >
                                     {line}
@@ -206,10 +253,12 @@ export default function AgentHUD({
                             ))}
                             <motion.span
                                 animate={{ opacity: [1, 0, 1] }}
-                                transition={{ duration: 1, repeat: Infinity }}
-                                className="text-[var(--deep-accent)]"
+                                transition={{ duration: isAIActive ? 0.3 : 1, repeat: Infinity }}
+                                className={clsx(
+                                    isAIActive ? "text-emerald-400" : "text-[var(--deep-accent)]"
+                                )}
                             >
-                                _
+                                {isAIActive ? "▌" : "_"}
                             </motion.span>
                         </div>
                     </div>
@@ -286,33 +335,61 @@ export default function AgentHUD({
                 </div>
             </motion.div>
 
-            {/* Bottom: Circular Ring Display */}
+            {/* Bottom: Circular Ring Display - THE PIT */}
             <div className="absolute bottom-24 left-1/2 -translate-x-1/2 pointer-events-none">
-                {/* Outer glowing ring */}
+                {/* Outer glowing ring - pulses faster when AI active */}
                 <motion.div
                     animate={{ rotate: 360 }}
-                    transition={{ duration: 60, repeat: Infinity, ease: "linear" }}
-                    className="w-32 h-32 rounded-full border border-[var(--deep-accent)]/30"
+                    transition={{ duration: isAIActive ? 10 : 60, repeat: Infinity, ease: "linear" }}
+                    className={clsx(
+                        "w-32 h-32 rounded-full border",
+                        isAIActive
+                            ? "border-emerald-400/60"
+                            : "border-[var(--deep-accent)]/30"
+                    )}
                     style={{
-                        boxShadow: "0 0 30px rgba(14, 165, 233, 0.1), inset 0 0 30px rgba(14, 165, 233, 0.05)"
+                        boxShadow: isAIActive
+                            ? "0 0 60px rgba(52, 211, 153, 0.4), inset 0 0 40px rgba(52, 211, 153, 0.2)"
+                            : "0 0 30px rgba(14, 165, 233, 0.1), inset 0 0 30px rgba(14, 165, 233, 0.05)"
                     }}
                 >
                     {/* Orbital dots */}
-                    <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-[var(--deep-accent)]" />
-                    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-1.5 h-1.5 rounded-full bg-[var(--deep-glow)]" />
+                    <div className={clsx(
+                        "absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-2 h-2 rounded-full",
+                        isAIActive ? "bg-emerald-400 animate-pulse" : "bg-[var(--deep-accent)]"
+                    )} />
+                    <div className={clsx(
+                        "absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-1.5 h-1.5 rounded-full",
+                        isAIActive ? "bg-emerald-300" : "bg-[var(--deep-glow)]"
+                    )} />
                 </motion.div>
 
-                {/* Inner ring */}
+                {/* Inner ring - spins opposite and faster when active */}
                 <motion.div
                     animate={{ rotate: -360 }}
-                    transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
-                    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 rounded-full border border-[var(--deep-glow)]/20"
+                    transition={{ duration: isAIActive ? 5 : 30, repeat: Infinity, ease: "linear" }}
+                    className={clsx(
+                        "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 rounded-full border",
+                        isAIActive ? "border-emerald-400/40" : "border-[var(--deep-glow)]/20"
+                    )}
                 />
 
-                {/* Center core */}
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-[var(--deep-accent)]/10 border border-[var(--deep-accent)]/30 flex items-center justify-center">
-                    <Zap className="w-4 h-4 text-[var(--deep-accent)]" />
-                </div>
+                {/* Center core - pulses when active */}
+                <motion.div
+                    animate={isAIActive ? { scale: [1, 1.1, 1] } : {}}
+                    transition={{ duration: 0.5, repeat: Infinity }}
+                    className={clsx(
+                        "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 rounded-full flex items-center justify-center",
+                        isAIActive
+                            ? "bg-emerald-400/20 border border-emerald-400/50"
+                            : "bg-[var(--deep-accent)]/10 border border-[var(--deep-accent)]/30"
+                    )}
+                >
+                    <Zap className={clsx(
+                        "w-4 h-4",
+                        isAIActive ? "text-emerald-400 animate-pulse" : "text-[var(--deep-accent)]"
+                    )} />
+                </motion.div>
             </div>
 
             {/* Corner Decorations */}

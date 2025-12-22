@@ -132,9 +132,50 @@ export const generateContent = action({
         Input: ${args.prompt}`;
 
         try {
+            // ═══════════════════════════════════════════════════════════════
+            // TELEMETRY: Log "Thinking" Step
+            // ═══════════════════════════════════════════════════════════════
+            if (runId) {
+                try {
+                    const voiceLabel = args.voice?.toUpperCase() || "NEUTRAL";
+                    await ctx.runMutation(internal.studio.runs.logToRunInternal, {
+                        runId,
+                        message: `${voiceLabel}: Analyzing narrative context...`,
+                        level: "info",
+                    });
+                } catch (e) { /* ignore telemetry errors */ }
+            }
+
             const result = await model.generateContent(fullPrompt);
             const response = await result.response;
             let text = response.text();
+
+            // ═══════════════════════════════════════════════════════════════
+            // TELEMETRY: Log AI "Chain of Thought" 
+            // ═══════════════════════════════════════════════════════════════
+            if (runId) {
+                try {
+                    const voiceLabel = args.voice?.toUpperCase() || "NEUTRAL";
+
+                    // Extract any "thinking" text before the JSON (if present)
+                    const thinkingMatch = text.match(/^([\s\S]*?)(\{[\s\S]*\})/);
+                    if (thinkingMatch && thinkingMatch[1].trim()) {
+                        const thinking = thinkingMatch[1].trim().substring(0, 200);
+                        await ctx.runMutation(internal.studio.runs.logToRunInternal, {
+                            runId,
+                            message: `${voiceLabel}: ${thinking}`,
+                            level: "debug",
+                        });
+                    }
+
+                    // Log processing step
+                    await ctx.runMutation(internal.studio.runs.logToRunInternal, {
+                        runId,
+                        message: `${voiceLabel}: Refining voice patterns... adjusting for en-GB protocol.`,
+                        level: "info",
+                    });
+                } catch (e) { /* ignore telemetry errors */ }
+            }
 
             // Aggressive "Fuzzy" JSON Cleaner
             const match = text.match(/\{[\s\S]*\}/);
