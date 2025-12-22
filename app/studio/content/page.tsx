@@ -445,7 +445,7 @@ export default function ContentFactoryPage() {
                                                     )}>{displayStatus}</span>
                                                 </td>
                                                 <td className="px-4 py-3 text-xs text-gray-500">
-                                                    {reveal.isLinked ? reveal.linkedSceneName : <span className="italic">Unplaced</span>}
+                                                    {reveal.isLinked ? reveal.linkedSceneName : <span className="font-bold text-amber-600 animate-pulse">Unplaced</span>}
                                                 </td>
                                                 <td className="px-4 py-3 text-right">
                                                     <div className="flex justify-end gap-2 items-center">
@@ -461,7 +461,7 @@ export default function ContentFactoryPage() {
                                                                 className="text-xs bg-orange-100 text-orange-700 px-2 py-1.5 rounded font-bold hover:bg-orange-200 flex items-center gap-1 transition-colors"
                                                                 title="Place in Scene"
                                                             >
-                                                                <MapPin className="w-3 h-3" /> Place
+                                                                <MapPin className="w-3 h-3 animate-pulse" /> Place
                                                             </button>
                                                         )}
                                                         <button

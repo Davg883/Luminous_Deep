@@ -43,8 +43,21 @@ export function ContentPreview({ pack, sceneTitle, sceneBackgroundUrl }: { pack:
     const displayHint = pack.hint || pack.hint_line || pack.hintLine || "";
     const displayType = (pack.revealType || pack.type || "text") as RevealType;
     const rawDomain = (pack.domain || pack.sceneSlug || "workshop").toLowerCase();
-    // Validate domain
-    const displayDomain = ["workshop", "study", "boathouse", "home"].includes(rawDomain) ? rawDomain as Domain : "workshop";
+
+    // Domain Mapping Logic
+    const DOMAIN_MAP: Record<string, { style: Domain, label: string }> = {
+        "lounge": { style: "study", label: "THE HEARTH" },
+        "study": { style: "study", label: "THE STUDY" },
+        "kitchen": { style: "workshop", label: "THE GALLEY" },
+        "galley": { style: "workshop", label: "THE GALLEY" }, // Handle aliasing
+        "workshop": { style: "workshop", label: "THE WORKSHOP" },
+        "lantern": { style: "boathouse", label: "THE LANTERN" },
+        "boathouse": { style: "boathouse", label: "THE BOATHOUSE" },
+        "luminous-deep": { style: "luminous-deep" as any, label: "LUMINOUS DEEP" },
+        "home": { style: "home", label: "HOME" }
+    };
+
+    const domainConfig = DOMAIN_MAP[rawDomain] || { style: "workshop", label: rawDomain.toUpperCase() };
 
     const displayTags = pack.tags || [];
     const displayCanon = pack.canonRefs || pack.canon_refs || [];
@@ -58,13 +71,13 @@ export function ContentPreview({ pack, sceneTitle, sceneBackgroundUrl }: { pack:
         <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm flex flex-col h-full">
             <div className="bg-gray-100 px-4 py-2 text-xs font-bold text-gray-500 uppercase tracking-widest border-b border-gray-200 flex justify-between">
                 <span>High-Fidelity Preview</span>
-                <span>{displayDomain.toUpperCase()} • {displayType.toUpperCase()}</span>
+                <span>{domainConfig.label} • {displayType.toUpperCase()}</span>
             </div>
 
             {/* High Fidelity Environment */}
             <div className="flex-1 relative overflow-hidden bg-black group">
                 {/* 1. Atmosphere Layer */}
-                <Atmosphere domain={displayDomain} className="absolute inset-0 pointer-events-none" />
+                <Atmosphere domain={domainConfig.style} className="absolute inset-0 pointer-events-none" />
 
                 {/* 2. Embedded Reveal Card (Scrollable) */}
                 <div className="absolute inset-0 z-10 overflow-y-auto custom-scrollbar p-8 flex flex-col items-center">
@@ -73,7 +86,7 @@ export function ContentPreview({ pack, sceneTitle, sceneBackgroundUrl }: { pack:
                             title={displayTitle}
                             content={displayBody}
                             type={displayType}
-                            domain={displayDomain}
+                            domain={domainConfig.style}
                             isOpen={true}
                             onClose={() => { }}
                             mediaUrl={displayMedia}
