@@ -157,7 +157,7 @@ export default function DomainPage() {
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
                         onClick={() => setIsTerminalOpen(true)}
-                        className="fixed bottom-8 left-8 z-30 p-4 bg-black/40 text-white/80 rounded-full backdrop-blur-md border border-white/10 hover:bg-white/10 hover:border-white/30 transition-all shadow-lg group"
+                        className="fixed bottom-8 right-8 z-50 p-3 bg-white/10 text-white backdrop-blur-md border border-white/20 rounded-full hover:bg-white/20 transition-all shadow-lg group"
                     >
                         <div className="absolute inset-0 rounded-full bg-white/5 animate-ping opacity-0 group-hover:opacity-100" />
                         <Terminal className="w-5 h-5" />
@@ -171,13 +171,13 @@ export default function DomainPage() {
                                     animate={{ opacity: 1 }}
                                     exit={{ opacity: 0 }}
                                     onClick={() => setIsTerminalOpen(false)}
-                                    className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
+                                    className="fixed inset-0 z-[90] bg-black/60 backdrop-blur-sm"
                                 />
                                 <motion.div
                                     initial={{ opacity: 0, scale: 0.95, y: 20 }}
                                     animate={{ opacity: 1, scale: 1, y: 0 }}
                                     exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                                    className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none"
+                                    className="fixed inset-0 z-[100] flex items-center justify-center p-4 pointer-events-none"
                                 >
                                     <div className="w-full max-w-2xl pointer-events-auto">
                                         <SanctuaryTerminal />
