@@ -50,12 +50,13 @@ export default function ContentFactoryPage() {
 
     // Filter State
     const [searchQuery, setSearchQuery] = useState("");
-    const [statusFilter, setStatusFilter] = useState("All");
+    const [statusFilter, setStatusFilter] = useState<"All" | "Published" | "Draft" | "Unlinked" | "Review">("All");
     const [domainFilter, setDomainFilter] = useState("All");
 
-    // AI State
+    // Process State
     const generateContent = useAction(api.studio.ai.generateContent);
     const [isProcessingAI, setIsProcessingAI] = useState(false);
+    const [publishingIds, setPublishingIds] = useState<Set<string>>(new Set());
 
     const handleAIProcess = async () => {
         if (!jsonInput) return;
@@ -396,7 +397,7 @@ export default function ContentFactoryPage() {
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                             />
-                            <select className="border-none bg-gray-50 rounded-md px-4 py-2 text-sm outline-none" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+                            <select className="border-none bg-gray-50 rounded-md px-4 py-2 text-sm outline-none" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as any)}>
                                 <option value="All">All Status</option>
                                 <option value="Draft">Draft</option>
                                 <option value="Review">Review</option>
@@ -526,7 +527,34 @@ export default function ContentFactoryPage() {
                                 <p className="text-sm text-gray-600 line-clamp-3 mb-4 leading-relaxed italic">"{pack.bodyCopy}"</p>
                                 <div className="flex justify-end gap-2">
                                     <button onClick={(e) => { e.stopPropagation(); updatePack({ id: pack._id, status: "Draft" }); }} className="text-xs font-bold px-3 py-1 rounded bg-gray-100 text-gray-600 hover:bg-gray-200">Reject</button>
-                                    <button onClick={(e) => { e.stopPropagation(); publishPack({ id: pack._id }); }} className="text-xs font-bold px-3 py-1 rounded bg-indigo-600 text-white hover:bg-indigo-700">Approve & Publish</button>
+                                    <button
+                                        onClick={async (e) => {
+                                            e.stopPropagation();
+                                            // Optimistic UI handled by mutation but we want safety
+                                            // if(!confirm("Approve and Publish this story?")) return;
+
+                                            setPublishingIds(prev => new Set(prev).add(pack._id));
+                                            try {
+                                                await publishPack({ id: pack._id });
+                                                // Alert is intrusive but requested
+                                                // alert(`Published "${pack.title}" successfully.`);
+                                            } catch (err) {
+                                                console.error(err);
+                                                alert("Publishing failed. Check console.");
+                                            } finally {
+                                                setPublishingIds(prev => {
+                                                    const newSet = new Set(prev);
+                                                    newSet.delete(pack._id);
+                                                    return newSet;
+                                                });
+                                            }
+                                        }}
+                                        disabled={publishingIds.has(pack._id)}
+                                        className="text-xs font-bold px-3 py-1 rounded bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 flex items-center gap-2"
+                                    >
+                                        {publishingIds.has(pack._id) && <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></span>}
+                                        Approve & Publish
+                                    </button>
                                 </div>
                             </div>
                         ))}

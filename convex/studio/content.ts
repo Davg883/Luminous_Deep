@@ -171,6 +171,16 @@ export const publishPack = mutation({
         const pack = await ctx.db.get(args.id);
         if (!pack) throw new Error("Pack not found");
 
+        // 0. Integrity Check: Ensure Scene Exists
+        let finalSceneId = pack.sceneId;
+        const scene = await ctx.db.get(finalSceneId);
+        if (!scene) {
+            // Attempt recovery via domain/slug
+            const recovered = await ctx.db.query("scenes").withIndex("by_slug", q => q.eq("slug", pack.domain.toLowerCase())).first();
+            if (recovered) finalSceneId = recovered._id;
+            else throw new Error(`Target Scene (ID: ${pack.sceneId}) not found and cannot be recovered via slug ${pack.domain}.`);
+        }
+
         // 1. Map Domain to Canonical Voice
         let voice: any = "systems";
         const domain = pack.domain.toLowerCase();
@@ -188,14 +198,14 @@ export const publishPack = mutation({
             tags: pack.tags,
             mediaUrl: pack.mediaRefs, // Link the media ref
             role: "canon",
-            status: "published",
+            status: "Published", // Title Case for UI consistency
             publishedAt: Date.now(),
-            spaceId: pack.sceneId,
+            spaceId: finalSceneId,
         });
 
         // 3. Create the Object
         await ctx.db.insert("objects", {
-            sceneId: pack.sceneId,
+            sceneId: finalSceneId,
             name: pack.title,
             x: 55, // Offset slightly from center so overlapping isn't perfect
             y: 45,
@@ -205,7 +215,7 @@ export const publishPack = mutation({
         });
 
 
-        // 3. Delete the draft pack (It has been promoted to Reveal)
+        // 4. Delete the draft pack (It has been promoted to Reveal)
         await ctx.db.delete(args.id);
         return { success: true };
     },
