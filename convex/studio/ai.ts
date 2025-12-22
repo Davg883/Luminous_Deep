@@ -203,15 +203,32 @@ export const generateContent = action({
             // ═══════════════════════════════════════════════════════════════
             // TELEMETRY: Fail Run
             // ═══════════════════════════════════════════════════════════════
+            console.error("AI Generation Error:", error);
+
+            const errorMessage = error?.message || "Unknown AI generation error";
+            const errorDetails = error?.response?.text?.() || error?.stack || "";
+
             if (runId) {
                 try {
                     await ctx.runMutation(internal.studio.runs.failRunInternal, {
                         runId,
-                        errorMessage: error.message || "AI generation failed",
+                        errorMessage: errorMessage,
                     });
                 } catch (e) { /* ignore telemetry errors */ }
             }
-            throw error;
+
+            // Provide a more helpful error message
+            if (errorMessage.includes("API_KEY")) {
+                throw new Error("Google API Key is invalid or missing. Please check your GOOGLE_API_KEY environment variable in Convex.");
+            }
+            if (errorMessage.includes("404") || errorMessage.includes("not found")) {
+                throw new Error("The AI model was not found. This may be a temporary Gemini API issue. Please try again.");
+            }
+            if (errorMessage.includes("quota") || errorMessage.includes("rate")) {
+                throw new Error("API quota exceeded. Please wait a moment and try again.");
+            }
+
+            throw new Error(`AI Generation Failed: ${errorMessage}`);
         }
     },
 });
