@@ -4,22 +4,22 @@ import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { X, ChevronDown } from "lucide-react";
 
-interface Room {
+interface RoomNode {
     id: string;
-    emoji: string;
-    name: string;
-    subtitle: string;
+    label: string;
     path: string;
-    glowColor: string;
+    top: string;
+    left: string;
+    align: "left" | "right" | "center";
 }
 
-const rooms: Room[] = [
-    { id: "home", emoji: "🏡", name: "The Arrival", subtitle: "Home", path: "/home", glowColor: "#fbbf24" },
-    { id: "workshop", emoji: "🛠️", name: "The Workbench", subtitle: "Create", path: "/workshop", glowColor: "#f59e0b" },
-    { id: "study", emoji: "🏛️", name: "The Luminous Desk", subtitle: "Reflect", path: "/study", glowColor: "#f1e7d0" },
-    { id: "boathouse", emoji: "⚓", name: "The Anchorage", subtitle: "Analyze", path: "/boathouse", glowColor: "#06b6d4" },
-    { id: "lounge", emoji: "🛋️", name: "The Hearth", subtitle: "Rest", path: "/lounge", glowColor: "#f59e0b" },
-    { id: "kitchen", emoji: "🍳", name: "The Galley", subtitle: "Process", path: "/kitchen", glowColor: "#38bdf8" },
+const mapNodes: RoomNode[] = [
+    { id: "study", label: "The Study", path: "/study", top: "25%", left: "25%", align: "right" },
+    { id: "boathouse", label: "Boathouse", path: "/boathouse", top: "20%", left: "75%", align: "left" },
+    { id: "lounge", label: "The Hearth", path: "/lounge", top: "45%", left: "40%", align: "center" },
+    { id: "workshop", label: "Workshop", path: "/workshop", top: "40%", left: "15%", align: "right" },
+    { id: "kitchen", label: "Kitchen", path: "/kitchen", top: "60%", left: "70%", align: "left" },
+    { id: "home", label: "Arrival", path: "/home", top: "85%", left: "50%", align: "center" },
 ];
 
 interface RoomSelectorProps {
@@ -35,140 +35,77 @@ export default function RoomSelector({ isOpen, onClose }: RoomSelectorProps) {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    transition={{ duration: 0.4 }}
-                    className="fixed inset-0 z-50 flex flex-col items-center justify-center"
+                    transition={{ duration: 0.5 }}
+                    className="fixed inset-0 z-[60] flex items-center justify-center overflow-hidden"
                 >
-                    {/* Glassmorphic Backdrop with intense blur */}
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.5 }}
-                        className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/60 to-black/80 backdrop-blur-2xl"
-                        onClick={onClose}
-                    />
+                    {/* Dark Backdrop */}
+                    <div className="absolute inset-0 bg-black/90 backdrop-blur-xl" onClick={onClose} />
 
                     {/* Close Button */}
-                    <motion.button
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.8 }}
-                        transition={{ delay: 0.2 }}
+                    <button
                         onClick={onClose}
-                        className="absolute top-8 right-8 p-3 rounded-full bg-white/10 hover:bg-white/20 text-white/80 hover:text-white transition-all duration-300 z-10 border border-white/10"
-                        aria-label="Close room selector"
+                        className="absolute top-8 right-8 text-white/50 hover:text-white transition-colors z-50"
                     >
-                        <X size={24} />
-                    </motion.button>
+                        <X size={32} strokeWidth={1} />
+                    </button>
 
-                    {/* Room List */}
-                    <motion.nav
-                        initial={{ opacity: 0, y: 30 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 30 }}
-                        transition={{ duration: 0.5, delay: 0.1 }}
-                        className="relative z-10 flex flex-col items-center gap-4 md:gap-6 px-8 max-h-[70vh] overflow-y-auto"
-                    >
-                        <motion.h2
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ delay: 0.3 }}
-                            className="font-sans text-sm md:text-base uppercase tracking-[0.3em] text-white/50 mb-6"
-                        >
-                            Choose Your Destination
-                        </motion.h2>
-
-                        {/* Room Grid */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-                            {rooms.map((room, index) => (
-                                <motion.div
-                                    key={room.id}
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: 20 }}
-                                    transition={{ delay: 0.2 + index * 0.06 }}
-                                    className="relative"
-                                >
-                                    <Link
-                                        href={room.path}
-                                        onClick={onClose}
-                                        className="group flex items-center gap-4 md:gap-5 py-4 px-6 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 transition-all duration-300"
-                                    >
-                                        {/* Emoji Icon with glow */}
-                                        <span
-                                            className="text-3xl md:text-4xl opacity-80 group-hover:opacity-100 transition-all duration-300 group-hover:scale-110"
-                                            style={{
-                                                filter: `drop-shadow(0 0 8px ${room.glowColor})`,
-                                            }}
-                                        >
-                                            {room.emoji}
-                                        </span>
-
-                                        {/* Room Info */}
-                                        <div className="flex flex-col">
-                                            <span
-                                                className="font-serif text-xl md:text-2xl lg:text-3xl text-white group-hover:text-white transition-colors duration-300"
-                                                style={{
-                                                    textShadow: `0 2px 20px ${room.glowColor}40`,
-                                                }}
-                                            >
-                                                {room.name}
-                                            </span>
-                                            <span className="font-sans text-xs md:text-sm text-white/40 group-hover:text-white/60 tracking-widest uppercase transition-colors duration-300">
-                                                {room.subtitle}
-                                            </span>
-                                        </div>
-
-                                        {/* Hover Glow Effect */}
-                                        <div
-                                            className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none rounded-xl -z-10"
-                                            style={{
-                                                background: `radial-gradient(ellipse at left, ${room.glowColor}15 0%, transparent 60%)`,
-                                            }}
-                                        />
-                                    </Link>
-                                </motion.div>
-                            ))}
-                        </div>
-                    </motion.nav>
-
-                    {/* Secret Entrance to the Luminous Deep */}
+                    {/* Map Container */}
                     <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ delay: 0.8 }}
-                        className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-3"
+                        initial={{ scale: 0.95, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0.95, opacity: 0 }}
+                        transition={{ duration: 0.6, ease: "easeOut" }}
+                        className="relative w-full max-w-4xl aspect-[4/3] md:aspect-video select-none"
                     >
-                        {/* Escape hint */}
-                        <span className="text-white/20 font-sans text-xs tracking-widest uppercase">
-                            Press Escape to close
-                        </span>
+                        {/* Floorplan Image (Placeholder) */}
+                        <div
+                            className="absolute inset-0 bg-[url('/assets/floorplan_placeholder.webp')] bg-contain bg-center bg-no-repeat opacity-20"
+                            style={{ filter: "invert(1) drop-shadow(0 0 20px rgba(255,255,255,0.2))" }}
+                        />
 
-                        {/* The Hidden Descent */}
-                        <Link
-                            href="/luminous-deep"
-                            onClick={onClose}
-                            className="group flex items-center gap-2 text-white/20 hover:text-[#0ea5e9] transition-all duration-500"
-                        >
-                            <ChevronDown
-                                size={14}
-                                className="animate-bounce opacity-50 group-hover:opacity-100"
-                            />
-                            <span
-                                className="font-mono text-[10px] md:text-xs tracking-wider uppercase"
+                        {/* Room Nodes */}
+                        {mapNodes.map((node, i) => (
+                            <Link
+                                key={node.id}
+                                href={node.path}
+                                onClick={onClose}
+                                className="absolute group"
                                 style={{
-                                    textShadow: "0 0 10px rgba(14, 165, 233, 0)",
-                                    transition: "text-shadow 0.5s ease",
+                                    top: node.top,
+                                    left: node.left,
+                                    transform: "translate(-50%, -50%)"
                                 }}
                             >
-                                Descend to the Luminous Deep
-                            </span>
-                            <ChevronDown
-                                size={14}
-                                className="animate-bounce opacity-50 group-hover:opacity-100"
-                            />
-                        </Link>
+                                <motion.div
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.2 + (i * 0.1) }}
+                                    className={`flex flex-col ${node.align === 'left' ? 'items-start' : node.align === 'right' ? 'items-end' : 'items-center'}`}
+                                >
+                                    {/* Dot Marker */}
+                                    <div className="w-2 h-2 rounded-full bg-white mb-2 group-hover:scale-150 group-hover:bg-amber-400 transition-all duration-300 shadow-[0_0_10px_rgba(255,255,255,0.5)]" />
+
+                                    {/* Label */}
+                                    <span className="font-serif text-lg md:text-2xl text-white/60 group-hover:text-white transition-colors duration-300 whitespace-nowrap">
+                                        {node.label}
+                                    </span>
+                                </motion.div>
+                            </Link>
+                        ))}
+
+                        {/* Deep Descent Link */}
+                        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-full text-center">
+                            <Link
+                                href="/luminous-deep"
+                                onClick={onClose}
+                                className="group inline-flex flex-col items-center gap-2 text-sky-500/50 hover:text-sky-400 transition-colors duration-500"
+                            >
+                                <span className="font-sans text-[10px] tracking-[0.3em] uppercase opacity-70 group-hover:opacity-100">
+                                    Below the Foundation
+                                </span>
+                                <ChevronDown className="w-4 h-4 animate-bounce opacity-50 group-hover:opacity-100" />
+                            </Link>
+                        </div>
                     </motion.div>
                 </motion.div>
             )}
