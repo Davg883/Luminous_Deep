@@ -255,3 +255,128 @@ export const generateContent = action({
     },
 });
 
+// ═══════════════════════════════════════════════════════════════
+// SOCIAL COMMAND CENTRE: Multi-Platform Post Generator
+// ═══════════════════════════════════════════════════════════════
+
+export const generateSocialPost = action({
+    args: {
+        platform: v.union(
+            v.literal("X"),
+            v.literal("Instagram"),
+            v.literal("Facebook"),
+            v.literal("LinkedIn")
+        ),
+        agentId: v.string(),
+        topic: v.string(),
+        charLimit: v.number(),
+    },
+    handler: async (ctx, args) => {
+        await requireStudioAccessAction(ctx);
+
+        const apiKey = process.env.GOOGLE_API_KEY;
+        if (!apiKey) {
+            throw new Error("Missing GOOGLE_API_KEY");
+        }
+
+        // Voice mapping from agentId (passed as voice string from frontend for simplicity)
+        const agentVoice = args.agentId;
+        const agentName = agentVoice.charAt(0).toUpperCase() + agentVoice.slice(1);
+
+        const genAI = new GoogleGenerativeAI(apiKey);
+        const model = genAI.getGenerativeModel({
+            model: "gemini-2.5-flash",
+            generationConfig: { responseMimeType: "application/json" }
+        });
+
+        // Platform-specific formatting rules
+        const platformRules: Record<string, string> = {
+            X: `Twitter/X Format:
+- Maximum ${args.charLimit} characters
+- Use punchy, conversational tone
+- Include 1-2 relevant emojis sparingly
+- End with a question or call-to-action when appropriate
+- NO hashtags unless absolutely essential`,
+
+            Instagram: `Instagram Format:
+- Visual-first storytelling caption
+- Use line breaks for readability
+- Include 2-3 emojis naturally in the text
+- Add a clear call-to-action
+- End with 3-5 relevant hashtags on a new line`,
+
+            Facebook: `Facebook Format:
+- Longer narrative format allowed
+- Use conversational, community-focused tone
+- Include a hook in the first line
+- Ask questions to encourage engagement
+- Keep paragraphs short for mobile readability`,
+
+            LinkedIn: `LinkedIn Format:
+- Professional thought leadership tone
+- Start with a hook/insight
+- Use line breaks between paragraphs
+- Include industry-relevant insights
+- End with a professional call-to-action
+- NO emojis unless very subtle`,
+        };
+
+        const voicePersonas: Record<string, string> = {
+            cassie: "Cassie: Energetic workshop leader, hands-on, process-focused, 'let me show you how this works' energy.",
+            eleanor: "Eleanor: Thoughtful curator, poetic observations, 'here's what I noticed' wisdom.",
+            julian: "Julian: Technical expert, precise language, data-driven insights, dry wit.",
+            neutral: "Professional brand voice: Confident, clear, inspiring."
+        };
+
+        const systemInstruction = `
+        INSTRUCTION: You are a Social Media Content Generator for Luminous Deep.
+        Generate platform-optimised social media copy for ${args.platform}.
+
+        VOICE CONTEXT:
+        ${voicePersonas[agentVoice] || voicePersonas.neutral}
+        Writing as: ${agentName}
+
+        PLATFORM REQUIREMENTS:
+        ${platformRules[args.platform]}
+
+        CHARACTER LIMIT: ${args.charLimit} characters (STRICT - never exceed)
+
+        LOCALISATION PROTOCOL: en-GB (BRITISH)
+        1. ORTHOGRAPHY: Use British spelling (-OUR, -RE, -ISE).
+        2. VOCABULARY: Use British terms (Pavement, Bin, Flat, etc.).
+        3. TONE: Professional British brand voice. Avoid American slang.
+
+        OUTPUT FORMAT:
+        Return a JSON object with a single key "copy" containing the generated post text.
+        {
+            "copy": "Your generated post text here..."
+        }
+        `;
+
+        const prompt = `${systemInstruction}
+
+        TOPIC/BRIEF: ${args.topic}
+
+        Generate a compelling ${args.platform} post about this topic in the voice of ${agentName}.`;
+
+        try {
+            const result = await model.generateContent(prompt);
+            const response = await result.response;
+            let text = response.text();
+
+            // Parse JSON response
+            const match = text.match(/\{[\s\S]*\}/);
+            if (match) {
+                const parsed = JSON.parse(match[0]);
+                return { copy: parsed.copy || "" };
+            }
+
+            // Fallback: treat entire response as copy
+            return { copy: text.trim() };
+        } catch (error: any) {
+            console.error(`Social Post Generation Error:`, error);
+            throw new Error(`Failed to generate social post: ${error.message}`);
+        }
+    },
+});
+

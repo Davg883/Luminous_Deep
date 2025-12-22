@@ -244,5 +244,37 @@ export default defineSchema({
         // SynthID: AI-generation verification
         synthIdStatus: v.optional(v.string()),
     }).index("by_public_id", ["publicId"]).index("by_visual_bible", ["isVisualBible"]),
-});
 
+    // ═══════════════════════════════════════════════════════════════
+    // CANONICAL OBJECT #8: CAMPAIGNS (Social Command Centre)
+    // Multi-platform social media campaign management
+    // ═══════════════════════════════════════════════════════════════
+    campaigns: defineTable({
+        title: v.string(), // e.g., "The London Infrastructure Keynote"
+        platform: v.union(
+            v.literal("X"),
+            v.literal("Instagram"),
+            v.literal("Facebook"),
+            v.literal("LinkedIn")
+        ),
+        agentId: v.id("agents"), // Which agent is the "voice" of this campaign
+        status: v.union(
+            v.literal("planning"),
+            v.literal("generated"),
+            v.literal("scheduled"),
+            v.literal("posted")
+        ),
+        // Visual Bible: Reference images for character consistency
+        visualBibleIds: v.optional(v.array(v.id("media"))),
+        // Generated content
+        postCopy: v.optional(v.string()),
+        imageUrl: v.optional(v.string()),
+        imagePrompt: v.optional(v.string()),
+        // Scheduling
+        scheduledAt: v.optional(v.number()),
+        postedAt: v.optional(v.number()),
+        // Metadata
+        createdBy: v.optional(v.string()),
+        createdAt: v.number(),
+    }).index("by_agent", ["agentId"]).index("by_status", ["status"]).index("by_platform", ["platform"]),
+});
