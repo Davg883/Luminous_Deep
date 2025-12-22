@@ -29,6 +29,7 @@ type Tab = "Library" | "Review" | "Write" | "Scenes";
 
 export default function ContentFactoryPage() {
     const packs = useQuery(api.studio.content.listPacks);
+    console.log("DRAFTS IN QUEUE:", packs);
     const allReveals = useQuery(api.studio.content.listAllReveals);
     const scenes = useQuery(api.studio.scenes.getAllScenes);
     const importPack = useMutation(api.studio.content.importPack);
@@ -251,7 +252,7 @@ export default function ContentFactoryPage() {
 
                 const mutationArgs = {
                     hotspotId: normalized.hotspotId,
-                    domain: normalized.sceneSlug,
+                    domain: effectiveSlug,
                     sceneId: targetScene._id,
                     title: normalized.title,
                     revealType: normalized.revealType,
@@ -511,9 +512,9 @@ export default function ContentFactoryPage() {
                     <div className="space-y-4 overflow-y-auto max-h-[80vh] pr-2 custom-scrollbar">
                         <h2 className="text-lg font-bold flex items-center gap-2">
                             <span className="w-3 h-3 bg-yellow-400 rounded-full animate-pulse"></span>
-                            Review Queue ({(packs || []).filter((p: any) => p.status === "Review").length})
+                            Review Queue ({(packs || []).filter((p: any) => p.status === "Review" || p.status === "Draft").length})
                         </h2>
-                        {(packs || []).filter((p: any) => p.status === "Review").map((pack: any) => (
+                        {(packs || []).filter((p: any) => p.status === "Review" || p.status === "Draft").map((pack: any) => (
                             <div key={pack._id} className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:border-indigo-300 transition-all cursor-pointer group" onClick={() => setPreviewData(pack)}>
                                 <div className="flex justify-between items-start mb-4">
                                     <div>

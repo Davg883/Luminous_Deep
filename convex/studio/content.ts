@@ -205,8 +205,8 @@ export const publishPack = mutation({
         });
 
 
-        // 3. Update status
-        await ctx.db.patch(args.id, { status: "Published" });
+        // 3. Delete the draft pack (It has been promoted to Reveal)
+        await ctx.db.delete(args.id);
         return { success: true };
     },
 });
