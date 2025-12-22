@@ -10,6 +10,75 @@ export const listPacks = query({
     },
 });
 
+// ═══════════════════════════════════════════════════════════════
+// MASTER INVENTORY: All Reveals with Linked/Unlinked Status
+// ═══════════════════════════════════════════════════════════════
+export const listAllReveals = query({
+    args: {},
+    handler: async (ctx) => {
+        await requireStudioAccess(ctx);
+
+        // Get all reveals
+        const reveals = await ctx.db.query("reveals").collect();
+
+        // Get all objects to check linking
+        const objects = await ctx.db.query("objects").collect();
+
+        // Create a set of reveal IDs that are linked to objects
+        const linkedRevealIds = new Set(
+            objects
+                .filter(obj => obj.revealId)
+                .map(obj => obj.revealId?.toString())
+        );
+
+        // Enrich reveals with linking status and scene info
+        const enrichedReveals = await Promise.all(reveals.map(async (reveal) => {
+            const isLinked = linkedRevealIds.has(reveal._id.toString());
+
+            // Find the object if linked
+            const linkedObject = objects.find(obj => obj.revealId?.toString() === reveal._id.toString());
+            let sceneName = null;
+
+            if (linkedObject) {
+                const scene = await ctx.db.get(linkedObject.sceneId);
+                sceneName = scene?.title || "Unknown Scene";
+            }
+
+            return {
+                ...reveal,
+                isLinked,
+                linkedObjectId: linkedObject?._id || null,
+                linkedSceneName: sceneName,
+                linkedObjectName: linkedObject?.name || null,
+            };
+        }));
+
+        return enrichedReveals;
+    },
+});
+
+// ═══════════════════════════════════════════════════════════════
+// UNLINKED REVEALS: For "Add Object" dropdown
+// ═══════════════════════════════════════════════════════════════
+export const listUnlinkedReveals = query({
+    args: {},
+    handler: async (ctx) => {
+        await requireStudioAccess(ctx);
+
+        const reveals = await ctx.db.query("reveals").collect();
+        const objects = await ctx.db.query("objects").collect();
+
+        const linkedRevealIds = new Set(
+            objects
+                .filter(obj => obj.revealId)
+                .map(obj => obj.revealId?.toString())
+        );
+
+        // Return only unlinked reveals
+        return reveals.filter(reveal => !linkedRevealIds.has(reveal._id.toString()));
+    },
+});
+
 export const importPack = mutation({
     args: {
         hotspotId: v.string(),

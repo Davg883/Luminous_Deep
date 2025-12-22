@@ -6,6 +6,8 @@ import { useParams, useRouter } from "next/navigation";
 import { useState, useRef } from "react";
 import Link from "next/link";
 import { Id } from "@/convex/_generated/dataModel";
+import { Move, Plus, X } from "lucide-react";
+import clsx from "clsx";
 
 export default function SceneEditor() {
     const params = useParams();
@@ -13,14 +15,24 @@ export default function SceneEditor() {
     const slug = params?.slug as string;
 
     const scene = useQuery(api.studio.scenes.getScene, { slug });
+    const unlinkedReveals = useQuery(api.studio.content.listUnlinkedReveals);
     const addObject = useMutation(api.studio.scenes.addObject);
+    const addObjectWithReveal = useMutation(api.studio.scenes.addObjectWithExistingReveal);
     const updateScene = useMutation(api.studio.scenes.updateScene);
     const deleteObject = useMutation(api.studio.scenes.deleteObject);
+    const updateObjectPosition = useMutation(api.studio.scenes.updateObjectPosition);
+
     // Editing State
     const [selectedPoint, setSelectedPoint] = useState<{ x: number, y: number } | null>(null);
     const [newItemName, setNewItemName] = useState("");
+    const [selectedRevealId, setSelectedRevealId] = useState<Id<"reveals"> | "">("");
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [manualMediaUrl, setManualMediaUrl] = useState("");
+
+    // Move Mode State
+    const [isMoveMode, setIsMoveMode] = useState(false);
+    const [movingObjectId, setMovingObjectId] = useState<Id<"objects"> | null>(null);
+
     const stageRef = useRef<HTMLDivElement>(null);
 
     if (scene === undefined) return <div className="p-10">Loading Scene Editor...</div>;
@@ -45,27 +57,71 @@ export default function SceneEditor() {
         }
     };
 
-    const handleStageClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const handleStageClick = async (e: React.MouseEvent<HTMLDivElement>) => {
         if (!stageRef.current) return;
         const rect = stageRef.current.getBoundingClientRect();
         const x = ((e.clientX - rect.left) / rect.width) * 100;
         const y = ((e.clientY - rect.top) / rect.height) * 100;
+
+        // If in move mode and we have an object selected, relocate it
+        if (isMoveMode && movingObjectId) {
+            setIsSubmitting(true);
+            try {
+                await updateObjectPosition({
+                    id: movingObjectId,
+                    x,
+                    y,
+                });
+                console.log("Object relocated to:", x, y);
+            } catch (e: any) {
+                alert(`Relocation failed: ${e.message}`);
+            } finally {
+                setIsSubmitting(false);
+                setMovingObjectId(null);
+            }
+            return;
+        }
+
+        // Normal mode: set point for new object
         setSelectedPoint({ x, y });
-        setNewItemName(""); // Reset form
+        setNewItemName("");
+        setSelectedRevealId("");
+    };
+
+    const handleObjectClick = (e: React.MouseEvent, objectId: Id<"objects">) => {
+        e.stopPropagation();
+
+        if (isMoveMode) {
+            // Select this object for moving
+            setMovingObjectId(movingObjectId === objectId ? null : objectId);
+        }
     };
 
     const handleSaveObject = async () => {
         if (!selectedPoint || !newItemName.trim()) return;
         setIsSubmitting(true);
         try {
-            await addObject({
-                sceneId: scene._id,
-                name: newItemName,
-                x: selectedPoint.x,
-                y: selectedPoint.y
-            });
+            if (selectedRevealId) {
+                // Link existing reveal
+                await addObjectWithReveal({
+                    sceneId: scene._id,
+                    name: newItemName,
+                    x: selectedPoint.x,
+                    y: selectedPoint.y,
+                    revealId: selectedRevealId as Id<"reveals">,
+                });
+            } else {
+                // Create new placeholder reveal
+                await addObject({
+                    sceneId: scene._id,
+                    name: newItemName,
+                    x: selectedPoint.x,
+                    y: selectedPoint.y
+                });
+            }
             setSelectedPoint(null);
             setNewItemName("");
+            setSelectedRevealId("");
         } catch (e) {
             alert("Failed to add object");
         } finally {
@@ -74,6 +130,7 @@ export default function SceneEditor() {
     };
 
     const isVideo = scene.backgroundMediaUrl.includes(".mp4") || scene.backgroundMediaUrl.includes("/video/");
+    const movingObject = movingObjectId ? scene.objects.find((o: any) => o._id === movingObjectId) : null;
 
     return (
         <div className="flex flex-col h-screen overflow-hidden">
@@ -90,8 +147,27 @@ export default function SceneEditor() {
                         </h1>
                     </div>
                 </div>
-                <div className="text-xs font-mono text-gray-400">
-                    {scene.objects.length} Objects • Click background to place
+                <div className="flex items-center gap-4">
+                    {/* Move Mode Toggle */}
+                    <button
+                        onClick={() => {
+                            setIsMoveMode(!isMoveMode);
+                            setMovingObjectId(null);
+                            setSelectedPoint(null);
+                        }}
+                        className={clsx(
+                            "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all",
+                            isMoveMode
+                                ? "bg-orange-500 text-white"
+                                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                        )}
+                    >
+                        <Move size={16} />
+                        {isMoveMode ? "Moving..." : "Move Mode"}
+                    </button>
+                    <div className="text-xs font-mono text-gray-400">
+                        {scene.objects.length} Objects • {isMoveMode ? "Click object, then new spot" : "Click to place"}
+                    </div>
                 </div>
             </div>
 
@@ -100,7 +176,10 @@ export default function SceneEditor() {
                 <div className="flex-1 bg-gray-900 relative flex items-center justify-center overflow-auto p-8">
                     <div
                         ref={stageRef}
-                        className="relative shadow-2xl bg-black border border-gray-700 cursor-crosshair group select-none"
+                        className={clsx(
+                            "relative shadow-2xl bg-black border border-gray-700 group select-none",
+                            isMoveMode && movingObjectId ? "cursor-crosshair" : isMoveMode ? "cursor-pointer" : "cursor-crosshair"
+                        )}
                         style={{ width: "1200px", aspectRatio: "16/9" }}
                         onClick={handleStageClick}
                     >
@@ -122,7 +201,15 @@ export default function SceneEditor() {
                         {scene.objects.map((obj: any) => (
                             <div
                                 key={obj._id}
-                                className="absolute w-6 h-6 -ml-3 -mt-3 border-2 border-green-400 bg-green-500/20 rounded-full flex items-center justify-center hover:bg-green-500 hover:scale-125 transition-all z-20"
+                                onClick={(e) => handleObjectClick(e, obj._id)}
+                                className={clsx(
+                                    "absolute w-6 h-6 -ml-3 -mt-3 border-2 rounded-full flex items-center justify-center transition-all z-20",
+                                    movingObjectId === obj._id
+                                        ? "border-orange-400 bg-orange-500 scale-150 animate-pulse"
+                                        : isMoveMode
+                                            ? "border-blue-400 bg-blue-500/30 hover:bg-blue-500 hover:scale-125 cursor-grab"
+                                            : "border-green-400 bg-green-500/20 hover:bg-green-500 hover:scale-125"
+                                )}
                                 style={{ left: `${obj.x}%`, top: `${obj.y}%` }}
                                 title={`${obj.name} (${Math.round(obj.x)}%, ${Math.round(obj.y)}%)`}
                             >
@@ -133,7 +220,7 @@ export default function SceneEditor() {
                         ))}
 
                         {/* Ghost Object (Placing) */}
-                        {selectedPoint && (
+                        {selectedPoint && !isMoveMode && (
                             <div
                                 className="absolute w-6 h-6 -ml-3 -mt-3 border-2 border-dashed border-yellow-400 bg-yellow-400/30 rounded-full flex items-center justify-center animate-pulse z-30"
                                 style={{ left: `${selectedPoint.x}%`, top: `${selectedPoint.y}%` }}
@@ -143,14 +230,23 @@ export default function SceneEditor() {
                                 </div>
                             </div>
                         )}
+
+                        {/* Move Mode Indicator */}
+                        {isMoveMode && movingObject && (
+                            <div className="absolute top-4 left-4 bg-orange-500 text-white px-3 py-2 rounded-lg text-sm font-bold z-40 shadow-lg">
+                                Moving: {movingObject.name} — Click new location
+                            </div>
+                        )}
                     </div>
                 </div>
 
                 {/* Sidebar Controls */}
                 <div className="w-80 bg-white border-l border-gray-200 flex flex-col">
-                    {selectedPoint ? (
+                    {selectedPoint && !isMoveMode ? (
                         <div className="p-6 border-b border-gray-100 bg-yellow-50">
-                            <h3 className="font-bold text-yellow-800 mb-4">Add New Object</h3>
+                            <h3 className="font-bold text-yellow-800 mb-4 flex items-center gap-2">
+                                <Plus size={16} /> Add New Object
+                            </h3>
                             <div className="space-y-4">
                                 <div>
                                     <label className="text-[10px] font-bold text-gray-500 uppercase">Coordinates</label>
@@ -171,6 +267,21 @@ export default function SceneEditor() {
                                         onKeyDown={(e) => e.key === "Enter" && handleSaveObject()}
                                     />
                                 </div>
+                                <div>
+                                    <label className="text-[10px] font-bold text-gray-500 uppercase">Link Existing Reveal (Optional)</label>
+                                    <select
+                                        className="w-full border border-yellow-300 rounded p-2 text-sm outline-none focus:ring-2 focus:ring-yellow-400"
+                                        value={selectedRevealId}
+                                        onChange={(e) => setSelectedRevealId(e.target.value as Id<"reveals">)}
+                                    >
+                                        <option value="">Create new placeholder</option>
+                                        {(unlinkedReveals || []).map((reveal: any) => (
+                                            <option key={reveal._id} value={reveal._id}>
+                                                {reveal.title} ({reveal.type})
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
                                 <div className="flex gap-2 pt-2">
                                     <button
                                         onClick={() => setSelectedPoint(null)}
@@ -188,6 +299,25 @@ export default function SceneEditor() {
                                 </div>
                             </div>
                         </div>
+                    ) : isMoveMode ? (
+                        <div className="p-6 border-b border-gray-100 bg-orange-50">
+                            <h3 className="font-bold text-orange-800 mb-2 flex items-center gap-2">
+                                <Move size={16} /> Move Mode Active
+                            </h3>
+                            <p className="text-sm text-orange-600">
+                                {movingObjectId
+                                    ? "Click anywhere on the stage to relocate the object."
+                                    : "Click on an object to select it for moving."}
+                            </p>
+                            {movingObjectId && (
+                                <button
+                                    onClick={() => setMovingObjectId(null)}
+                                    className="mt-4 w-full px-3 py-2 bg-white border border-orange-300 rounded text-xs font-bold hover:bg-orange-100"
+                                >
+                                    Cancel Move
+                                </button>
+                            )}
+                        </div>
                     ) : (
                         <div className="p-6 border-b border-gray-100 text-center text-gray-400 text-sm">
                             Click on the stage to place a new object.
@@ -198,20 +328,44 @@ export default function SceneEditor() {
                         <h3 className="font-bold text-gray-900 mb-4 text-xs uppercase tracking-wider">Scene Objects</h3>
                         <div className="space-y-2">
                             {scene.objects.map((obj: any) => (
-                                <div key={obj._id} className="group flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-indigo-50 border border-transparent hover:border-indigo-100 transition-all">
+                                <div
+                                    key={obj._id}
+                                    className={clsx(
+                                        "group flex items-center justify-between p-3 rounded-lg border transition-all",
+                                        movingObjectId === obj._id
+                                            ? "bg-orange-100 border-orange-300"
+                                            : "bg-gray-50 hover:bg-indigo-50 border-transparent hover:border-indigo-100"
+                                    )}
+                                >
                                     <div>
                                         <div className="font-bold text-sm text-gray-700 group-hover:text-indigo-700">{obj.name}</div>
                                         <div className="text-[10px] text-gray-400 font-mono">
                                             {Math.round(obj.x)}%, {Math.round(obj.y)}%
                                         </div>
                                     </div>
-                                    <button
-                                        onClick={() => deleteObject({ id: obj._id })}
-                                        className="text-gray-400 hover:text-red-500 p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                                        title="Delete Object"
-                                    >
-                                        ×
-                                    </button>
+                                    <div className="flex items-center gap-1">
+                                        {isMoveMode && (
+                                            <button
+                                                onClick={() => setMovingObjectId(obj._id)}
+                                                className={clsx(
+                                                    "p-1 rounded transition-colors",
+                                                    movingObjectId === obj._id
+                                                        ? "text-orange-600"
+                                                        : "text-gray-400 hover:text-blue-500"
+                                                )}
+                                                title="Select for moving"
+                                            >
+                                                <Move size={14} />
+                                            </button>
+                                        )}
+                                        <button
+                                            onClick={() => deleteObject({ id: obj._id })}
+                                            className="text-gray-400 hover:text-red-500 p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                            title="Delete Object"
+                                        >
+                                            <X size={14} />
+                                        </button>
+                                    </div>
                                 </div>
                             ))}
                             {scene.objects.length === 0 && <p className="text-center text-gray-400 text-xs italic">No objects placed yet.</p>}

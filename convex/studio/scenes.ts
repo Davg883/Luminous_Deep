@@ -93,3 +93,50 @@ export const deleteObject = mutation({
         await ctx.db.delete(args.id);
     },
 });
+
+// ═══════════════════════════════════════════════════════════════
+// RELOCATION: Update object position
+// ═══════════════════════════════════════════════════════════════
+export const updateObjectPosition = mutation({
+    args: {
+        id: v.id("objects"),
+        x: v.number(),
+        y: v.number(),
+    },
+    handler: async (ctx, args) => {
+        await requireStudioAccess(ctx);
+        await ctx.db.patch(args.id, {
+            x: args.x,
+            y: args.y,
+        });
+        return { success: true };
+    },
+});
+
+// ═══════════════════════════════════════════════════════════════
+// LINK EXISTING REVEAL: Link an unlinked reveal to an object
+// ═══════════════════════════════════════════════════════════════
+export const addObjectWithExistingReveal = mutation({
+    args: {
+        sceneId: v.id("scenes"),
+        name: v.string(),
+        x: v.number(),
+        y: v.number(),
+        revealId: v.id("reveals"),
+        hint: v.optional(v.string()),
+    },
+    handler: async (ctx, args) => {
+        await requireStudioAccess(ctx);
+
+        await ctx.db.insert("objects", {
+            sceneId: args.sceneId,
+            name: args.name,
+            x: args.x,
+            y: args.y,
+            hint: args.hint || `Inspect ${args.name}`,
+            revealId: args.revealId,
+        });
+
+        return { success: true };
+    },
+});
