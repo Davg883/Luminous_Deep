@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Id } from "@/convex/_generated/dataModel";
 import clsx from "clsx";
@@ -52,6 +52,11 @@ export default function ContentFactoryPage() {
     const [searchQuery, setSearchQuery] = useState("");
     const [statusFilter, setStatusFilter] = useState<"All" | "Published" | "Draft" | "Unlinked" | "Review">("All");
     const [domainFilter, setDomainFilter] = useState("All");
+
+    // Clear preview when switching tabs to preventing status hallucination
+    useEffect(() => {
+        setPreviewData(null);
+    }, [activeTab]);
 
     // Process State
     const generateContent = useAction(api.studio.ai.generateContent);
@@ -502,13 +507,14 @@ export default function ContentFactoryPage() {
                                 {(!previewData.isAnchored && !previewData.isLinked) && (
                                     <button
                                         onClick={() => {
-                                            const targetSlug = previewData.scene_slug || "workshop";
+                                            // Fallback to domain if scene_slug is missing (common in Drafts)
+                                            const targetSlug = previewData.scene_slug || previewData.domain || "workshop";
                                             router.push(`/studio/content/${targetSlug}?placeReveal=${previewData._id}`);
                                         }}
-                                        className="w-full py-4 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all active:scale-95 animate-pulse"
+                                        className="w-full py-4 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all active:scale-95 animate-pulse z-50 relative"
                                     >
                                         <MapPin className="w-6 h-6" />
-                                        <span>ANCHOR TO {previewData.scene_slug ? previewData.scene_slug.toUpperCase() : "SCENE"}</span>
+                                        <span>ANCHOR TO {(previewData.scene_slug || previewData.domain || "SCENE").toUpperCase()}</span>
                                     </button>
                                 )}
                             </div>
