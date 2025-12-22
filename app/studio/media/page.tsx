@@ -112,29 +112,78 @@ export default function MediaLibraryPage() {
                 </div>
             </header>
 
-            {/* Identity Anchor Summary */}
+            {/* Identity Anchor Summary - DNA Strength Dashboard */}
             {anchorSummary && (
-                <div className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-xl p-4 text-white">
-                    <div className="flex items-center gap-3 mb-3">
-                        <Anchor className="w-5 h-5 text-violet-400" />
-                        <h3 className="font-bold">Identity Anchor Status</h3>
+                <div className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-xl p-5 text-white">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                            <Anchor className="w-6 h-6 text-violet-400" />
+                            <div>
+                                <h3 className="font-bold text-lg">DNA Strength</h3>
+                                <p className="text-xs text-gray-400">Identity Anchor slots determine AI generation consistency</p>
+                            </div>
+                        </div>
+                        <div className="text-right">
+                            <div className="text-2xl font-bold text-violet-400">{anchorSummary.total} / 42</div>
+                            <div className="text-xs text-gray-400">Total Anchors</div>
+                        </div>
                     </div>
                     <div className="grid grid-cols-3 gap-4">
-                        {(["cassie", "eleanor", "julian"] as Agent[]).map(agent => (
-                            <div key={agent} className={clsx(
-                                "rounded-lg p-3 border",
-                                AGENT_COLORS[agent].bg,
-                                AGENT_COLORS[agent].border
-                            )}>
-                                <div className={clsx("font-bold capitalize", AGENT_COLORS[agent].text)}>
-                                    {agent}
+                        {(["cassie", "eleanor", "julian"] as Agent[]).map(agent => {
+                            const filled = anchorSummary[agent] || 0;
+                            const percentage = Math.round((filled / 14) * 100);
+                            const strength = filled >= 10 ? "STRONG" : filled >= 5 ? "MODERATE" : filled >= 1 ? "WEAK" : "EMPTY";
+                            const strengthColor = filled >= 10 ? "text-emerald-400" : filled >= 5 ? "text-yellow-400" : filled >= 1 ? "text-orange-400" : "text-red-400";
+
+                            return (
+                                <div key={agent} className={clsx(
+                                    "rounded-xl p-4 border backdrop-blur-sm",
+                                    AGENT_COLORS[agent].bg,
+                                    AGENT_COLORS[agent].border
+                                )}>
+                                    <div className="flex items-center justify-between mb-2">
+                                        <div className={clsx("font-bold capitalize text-lg", AGENT_COLORS[agent].text)}>
+                                            {agent}
+                                        </div>
+                                        <span className={clsx("text-xs font-bold px-2 py-0.5 rounded-full bg-black/30", strengthColor)}>
+                                            {strength}
+                                        </span>
+                                    </div>
+
+                                    {/* Progress Bar */}
+                                    <div className="h-2 bg-black/30 rounded-full overflow-hidden mb-2">
+                                        <div
+                                            className="h-full rounded-full transition-all duration-500"
+                                            style={{
+                                                width: `${percentage}%`,
+                                                backgroundColor: AGENT_COLORS[agent].accent
+                                            }}
+                                        />
+                                    </div>
+
+                                    <div className="flex items-baseline justify-between">
+                                        <span className="text-2xl font-bold text-white">{filled}</span>
+                                        <span className="text-sm text-gray-400">/ 14 slots</span>
+                                    </div>
+
+                                    {filled < 3 && (
+                                        <p className="text-xs text-gray-500 mt-2 italic">
+                                            Upload LD_BIBLE_{agent.toUpperCase()}_01 to start
+                                        </p>
+                                    )}
                                 </div>
-                                <div className="text-2xl font-bold text-white">
-                                    {anchorSummary[agent]} / 14
-                                </div>
-                                <div className="text-xs text-gray-400">slots filled</div>
-                            </div>
-                        ))}
+                            );
+                        })}
+                    </div>
+
+                    {/* Quick Upload Hint */}
+                    <div className="mt-4 p-3 bg-black/20 rounded-lg border border-white/5">
+                        <div className="flex items-center gap-2 text-sm">
+                            <span className="text-violet-400">💡</span>
+                            <span className="text-gray-300">
+                                <strong>Auto-Sync:</strong> Upload files named <code className="bg-black/30 px-1 rounded">LD_BIBLE_JULIAN_01</code> to Cloudinary, then click Sync. The system will auto-assign Identity Anchors and extract AI tags.
+                            </span>
+                        </div>
                     </div>
                 </div>
             )}
