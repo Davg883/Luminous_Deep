@@ -24,7 +24,7 @@ function MediaResolverStatus({ publicId }: { publicId: string }) {
     );
 }
 
-type Tab = "Library" | "Review" | "Write" | "Scenes";
+type Tab = "Library" | "Strategy" | "Write" | "Scenes";
 
 
 export default function ContentFactoryPage() {
@@ -57,6 +57,7 @@ export default function ContentFactoryPage() {
     const [searchQuery, setSearchQuery] = useState("");
     const [statusFilter, setStatusFilter] = useState<"All" | "Published" | "Draft" | "Unlinked" | "Review">("All");
     const [domainFilter, setDomainFilter] = useState("All");
+    const [phaseFilter, setPhaseFilter] = useState<"All" | "early_year" | "spring" | "summer" | "autumn" | "winter">("All");
 
     // Clear preview when switching tabs to preventing status hallucination
     useEffect(() => {
@@ -265,9 +266,10 @@ export default function ContentFactoryPage() {
             const matchesSearch = (r.title || "").toLowerCase().includes(searchQuery.toLowerCase());
             const revealStatus = !r.isLinked ? "Unlinked" : (r.status === "published" ? "Published" : r.status === "draft" ? "Draft" : "Review");
             const matchesStatus = statusFilter === "All" || revealStatus === statusFilter;
-            return matchesSearch && matchesStatus;
+            const matchesPhase = phaseFilter === "All" || r.phase === phaseFilter;
+            return matchesSearch && matchesStatus && matchesPhase;
         });
-    }, [allReveals, searchQuery, statusFilter]);
+    }, [allReveals, searchQuery, statusFilter, phaseFilter]);
 
     if (packs === undefined || scenes === undefined) return <div className="p-8">Loading Factory...</div>;
 
@@ -279,7 +281,7 @@ export default function ContentFactoryPage() {
                     <p className="text-gray-500 text-sm">Draft, Review, and Publish the Luminous Deep experience.</p>
                 </div>
                 <div className="flex bg-gray-100 p-1 rounded-lg">
-                    {(["Library", "Review", "Write", "Scenes"] as const).map((tab) => (
+                    {(["Library", "Strategy", "Write", "Scenes"] as const).map((tab) => (
                         <button
                             key={tab}
                             onClick={() => setActiveTab(tab as any)}
@@ -324,6 +326,76 @@ export default function ContentFactoryPage() {
                 </div>
             )}
 
+            {/* TAB: STRATEGY - Content Matrix */}
+            {activeTab === "Strategy" && (
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                    <h2 className="text-lg font-bold text-gray-900 mb-4">Content Strategy Matrix</h2>
+                    <p className="text-sm text-gray-500 mb-6">Click any cell to filter the Library by that combination.</p>
+
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full border-collapse">
+                            <thead>
+                                <tr>
+                                    <th className="p-3 text-left text-xs font-bold text-gray-500 uppercase bg-gray-50 border border-gray-200">Room</th>
+                                    {["early_year", "spring", "summer", "autumn", "winter"].map(phase => (
+                                        <th key={phase} className="p-3 text-center text-xs font-bold text-gray-500 uppercase bg-gray-50 border border-gray-200">
+                                            {phase.replace("_", " ")}
+                                        </th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {["study", "boathouse", "workshop", "home", "lounge", "kitchen"].map(room => (
+                                    <tr key={room}>
+                                        <td className="p-3 font-medium text-gray-900 bg-gray-50 border border-gray-200 capitalize">{room}</td>
+                                        {["early_year", "spring", "summer", "autumn", "winter"].map(phase => {
+                                            const count = (allReveals || []).filter((r: any) =>
+                                                r.scene_slug === room && r.phase === phase
+                                            ).length;
+                                            return (
+                                                <td
+                                                    key={`${room}-${phase}`}
+                                                    className={clsx(
+                                                        "p-3 text-center border border-gray-200 cursor-pointer transition-all hover:bg-indigo-50",
+                                                        count > 0 ? "bg-indigo-100/50" : "bg-white"
+                                                    )}
+                                                    onClick={() => {
+                                                        setPhaseFilter(phase as any);
+                                                        setActiveTab("Library");
+                                                    }}
+                                                >
+                                                    <span className={clsx(
+                                                        "inline-flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold",
+                                                        count > 0 ? "bg-indigo-600 text-white" : "bg-gray-100 text-gray-400"
+                                                    )}>
+                                                        {count}
+                                                    </span>
+                                                </td>
+                                            );
+                                        })}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+                        <h3 className="font-bold text-gray-700 text-sm mb-2">Quick Stats</h3>
+                        <div className="grid grid-cols-5 gap-4 text-center">
+                            {["early_year", "spring", "summer", "autumn", "winter"].map(phase => {
+                                const total = (allReveals || []).filter((r: any) => r.phase === phase).length;
+                                return (
+                                    <div key={phase} className="bg-white p-3 rounded-lg border border-gray-200">
+                                        <div className="text-2xl font-black text-indigo-600">{total}</div>
+                                        <div className="text-xs text-gray-500 capitalize">{phase.replace("_", " ")}</div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* TAB: LIBRARY */}
             {activeTab === "Library" && (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -342,6 +414,14 @@ export default function ContentFactoryPage() {
                                 <option value="Review">Review</option>
                                 <option value="Published">Published</option>
                                 <option value="Unlinked">Unlinked</option>
+                            </select>
+                            <select className="border-none bg-gray-50 rounded-md px-4 py-2 text-sm outline-none" value={phaseFilter} onChange={(e) => setPhaseFilter(e.target.value as any)}>
+                                <option value="All">All Phases</option>
+                                <option value="early_year">Early Year</option>
+                                <option value="spring">Spring</option>
+                                <option value="summer">Summer</option>
+                                <option value="autumn">Autumn</option>
+                                <option value="winter">Winter</option>
                             </select>
                             <button
                                 onClick={async () => {

@@ -273,23 +273,18 @@ export default function SceneEditor() {
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="text-[10px] font-bold text-gray-500 uppercase">Object Name</label>
-                                    <input
-                                        autoFocus
-                                        type="text"
-                                        className="w-full border border-yellow-300 rounded p-2 text-sm outline-none focus:ring-2 focus:ring-yellow-400"
-                                        placeholder="e.g. Old Lantern"
-                                        value={newItemName}
-                                        onChange={(e) => setNewItemName(e.target.value)}
-                                        onKeyDown={(e) => e.key === "Enter" && handleSaveObject()}
-                                    />
-                                </div>
-                                <div>
-                                    <label className="text-[10px] font-bold text-gray-500 uppercase">Link Existing Reveal (Optional)</label>
+                                    <label className="text-[10px] font-bold text-yellow-700 uppercase">Link Existing Reveal (Recommended)</label>
                                     <select
-                                        className="w-full border border-yellow-300 rounded p-2 text-sm outline-none focus:ring-2 focus:ring-yellow-400"
+                                        className="w-full border-2 border-yellow-400 rounded p-2 text-sm outline-none focus:ring-2 focus:ring-yellow-400 bg-yellow-50"
                                         value={selectedRevealId}
-                                        onChange={(e) => setSelectedRevealId(e.target.value as Id<"reveals">)}
+                                        onChange={(e) => {
+                                            const revealId = e.target.value as Id<"reveals">;
+                                            setSelectedRevealId(revealId);
+                                            if (revealId && unlinkedReveals) {
+                                                const reveal = (unlinkedReveals as any[]).find(r => r._id === revealId);
+                                                if (reveal) setNewItemName(reveal.title || "");
+                                            }
+                                        }}
                                     >
                                         <option value="">Create new placeholder</option>
                                         {(unlinkedReveals || []).map((reveal: any) => (
@@ -298,6 +293,17 @@ export default function SceneEditor() {
                                             </option>
                                         ))}
                                     </select>
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-bold text-gray-500 uppercase">Object Name</label>
+                                    <input
+                                        type="text"
+                                        className="w-full border border-yellow-300 rounded p-2 text-sm outline-none focus:ring-2 focus:ring-yellow-400"
+                                        placeholder="e.g. Old Lantern"
+                                        value={newItemName}
+                                        onChange={(e) => setNewItemName(e.target.value)}
+                                        onKeyDown={(e) => e.key === "Enter" && handleSaveObject()}
+                                    />
                                 </div>
                                 <div className="flex gap-2 pt-2">
                                     <button
