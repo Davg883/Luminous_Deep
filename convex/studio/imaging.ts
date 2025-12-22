@@ -133,7 +133,7 @@ async function nanoBananaProCore(
     }
 }
 
-// Exported action wrapper
+// Exported action wrapper - Now with Identity Anchor integration
 export const generateNanoBananaAsset = action({
     args: {
         prompt: v.string(),
@@ -144,15 +144,48 @@ export const generateNanoBananaAsset = action({
     },
     handler: async (ctx, args) => {
         await requireStudioAccessAction(ctx);
-        return await nanoBananaProCore(
+
+        // ═══════════════════════════════════════════════════════════════
+        // IDENTITY ANCHOR: Fetch Character Lock References
+        // Query the database for this agent's 14 identity slots
+        // ═══════════════════════════════════════════════════════════════
+        let identityAnchors: string[] = [];
+
+        try {
+            const anchors = await ctx.runQuery(internal.studio.mediaQueries.getIdentityAnchorsInternal, {
+                agent: args.agentVoice
+            });
+
+            if (anchors && anchors.length > 0) {
+                identityAnchors = anchors.map((a: any) => a.url);
+                console.log(`[IDENTITY ANCHOR] Found ${identityAnchors.length} anchors for ${args.agentVoice}`);
+            }
+        } catch (e) {
+            console.warn("[IDENTITY ANCHOR] Failed to fetch anchors (non-critical):", e);
+        }
+
+        // Merge explicit reference images with identity anchors
+        // Priority: Identity Anchors first (character lock), then explicit refs
+        const allReferenceImages = [
+            ...identityAnchors,
+            ...(args.referenceImageUrls || [])
+        ].slice(0, 14); // Max 14 reference images
+
+        console.log(`[NANO BANANA PRO] Using ${allReferenceImages.length} reference images for Character Lock`);
+
+        // Generate with Character Lock enabled
+        const result = await nanoBananaProCore(
             args.prompt,
             args.agentVoice,
             args.sceneSlug,
-            args.referenceImageUrls,
+            allReferenceImages.length > 0 ? allReferenceImages : undefined,
             args.aspectRatio || "9:16"
         );
+
+        return { imageUrl: result, anchorsUsed: allReferenceImages.length };
     }
 });
+
 
 // ═══════════════════════════════════════════════════════════════
 // HELPER: Construct Enhanced Prompt

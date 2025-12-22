@@ -243,7 +243,15 @@ export default defineSchema({
         tags: v.optional(v.array(v.string())),
         // SynthID: AI-generation verification
         synthIdStatus: v.optional(v.string()),
-    }).index("by_public_id", ["publicId"]).index("by_visual_bible", ["isVisualBible"]),
+        // Identity Anchor: Character Lock System (Slots 1-14)
+        // Slots: 1=Primary Face, 2=Side Profile, 3=Contextual Style, 4-14=Extended Reference
+        identitySlot: v.optional(v.number()),
+        identityAgent: v.optional(v.union(
+            v.literal("cassie"),
+            v.literal("eleanor"),
+            v.literal("julian")
+        )),
+    }).index("by_public_id", ["publicId"]).index("by_visual_bible", ["isVisualBible"]).index("by_identity_anchor", ["identityAgent", "identitySlot"]),
 
     // ═══════════════════════════════════════════════════════════════
     // CANONICAL OBJECT #8: CAMPAIGNS (Social Command Centre)
