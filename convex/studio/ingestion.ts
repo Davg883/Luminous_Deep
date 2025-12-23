@@ -4,6 +4,8 @@ import { v } from "convex/values";
 import { action } from "../_generated/server";
 import { requireStudioAccessAction } from "../auth/helpers";
 import { internal } from "../_generated/api";
+import { v2 as cloudinary } from "cloudinary";
+import crypto from "crypto";
 
 type AgentIdentity = "julian" | "eleanor" | "cassie" | "unknown";
 type AssetRole = "portrait" | "technical_setting" | "mood_piece" | "hands" | "wardrobe" | "environment" | "props" | "unknown";
@@ -177,9 +179,8 @@ export const smartAgenticUpload = action({
             throw new Error("Cloudinary configuration missing. Verify Convex Environment Variables.");
         }
 
-        // 3. Pre-initialize Cloudinary SDK configuration
-        const { v2: cloudinarySDK } = await import("cloudinary");
-        cloudinarySDK.config({
+        // 3. Configure Cloudinary SDK (using static import)
+        cloudinary.config({
             cloud_name: cloudinaryCloud,
             api_key: cloudinaryApiKey,
             api_secret: cloudinaryApiSecret,
@@ -205,7 +206,6 @@ export const smartAgenticUpload = action({
 
             const uploadPromise = (async () => {
                 const mimeType = args.mimeType || "image/jpeg";
-                const crypto = await import("crypto");
                 const timestampSec = Math.floor(timestamp / 1000);
 
                 const signatureParams = [
@@ -256,15 +256,15 @@ export const smartAgenticUpload = action({
             log(agent, `Finalizing archival storage...`);
 
             // Finalize Cloudinary Asset (Rename and Add Context/Tags)
-            // Note: cloudinarySDK already configured at function start
+            // Note: cloudinary already configured at function start
 
             // 1. Rename to final destination
-            const finalAsset = await cloudinarySDK.uploader.rename(tempPublicId, `${folder}/${finalPublicId}`, {
+            const finalAsset = await cloudinary.uploader.rename(tempPublicId, `${folder}/${finalPublicId}`, {
                 overwrite: true,
             });
 
             // 2. Update metadata (tags and context) separately
-            await cloudinarySDK.uploader.explicit(finalAsset.public_id, {
+            await cloudinary.uploader.explicit(finalAsset.public_id, {
                 type: "upload",
                 context: `agent=${agent}|slot=${slot}|role=${analysis.role}|confidence=${analysis.confidence}`,
                 tags: [agent, analysis.role, "ai-ingested", "fibre-optimized", ...analysis.tags.slice(0, 5)],
