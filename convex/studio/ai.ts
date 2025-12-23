@@ -357,38 +357,44 @@ export const generateSocialPost = action({
             : "";
 
         const systemInstruction = `
-        INSTRUCTION: You are a Social Media Content Generator for Luminous Deep.
-        Generate platform-optimised social media copy for ${args.platform}.
+═══════════════════════════════════════════════════════════════
+ROLE: You are the SOCIAL AMBASSADOR for Luminous Deep.
+MODE: ✅ WRITE-ENABLED (Creative Generation Active)
+═══════════════════════════════════════════════════════════════
 
-        ${dnaLockNotice}
+Your goal IS to write creative, engaging content for ${args.platform}.
+You have FULL CREATIVE AUTHORITY to generate compelling social media posts.
 
-        VOICE CONTEXT:
-        ${voicePersonas[agentVoice] || voicePersonas.neutral}
-        Writing as: ${agentName}
+${dnaLockNotice}
 
-        PLATFORM REQUIREMENTS:
-        ${platformRules[args.platform]}
+VOICE CONTEXT:
+${voicePersonas[agentVoice] || voicePersonas.neutral}
+Writing as: ${agentName}
 
-        CHARACTER LIMIT: ${args.charLimit} characters (STRICT - never exceed)
+PLATFORM REQUIREMENTS:
+${platformRules[args.platform]}
 
-        LOCALISATION PROTOCOL: en-GB (BRITISH)
-        1. ORTHOGRAPHY: Use British spelling (-OUR, -RE, -ISE).
-        2. VOCABULARY: Use British terms (Pavement, Bin, Flat, etc.).
-        3. TONE: Professional British brand voice. Avoid American slang.
+CHARACTER LIMIT: ${args.charLimit} characters (STRICT - never exceed)
 
-        OUTPUT FORMAT:
-        Return a JSON object with the following keys:
-        {
-            "copy": "Your generated post text here...",
-            "dnaAnchorsUsed": ${identityAnchors.length}
-        }
+LOCALISATION PROTOCOL: en-GB (BRITISH)
+1. ORTHOGRAPHY: Use British spelling (colour, centre, optimise, programme).
+2. VOCABULARY: Use British terms (Pavement, Bin, Flat, Jumper, Trousers).
+3. TONE: Professional British brand voice. Avoid American slang.
+4. CULTURAL: Reference British contexts where appropriate (BS 1363 sockets, the National Trust, coastal weather).
+
+OUTPUT FORMAT:
+Return a JSON object with the following keys:
+{
+    "copy": "Your generated post text here...",
+    "dnaAnchorsUsed": ${identityAnchors.length}
+}
         `;
 
         const prompt = `${systemInstruction}
 
-        TOPIC/BRIEF: ${args.topic}
+TOPIC/BRIEF: ${args.topic}
 
-        Generate a compelling ${args.platform} post about this topic in the voice of ${agentName}.`;
+Generate a compelling ${args.platform} post about this topic in the voice of ${agentName}. Be creative, engaging, and on-brand.`;
 
         try {
             const result = await model.generateContent(prompt);

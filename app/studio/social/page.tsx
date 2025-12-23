@@ -284,9 +284,9 @@ export default function SocialStudioPage() {
                                             </div>
                                             <div className="text-right">
                                                 <span className={`text-2xl font-bold ${anchorCount >= 10 ? "text-emerald-400" :
-                                                        anchorCount >= 5 ? "text-amber-400" :
-                                                            anchorCount > 0 ? "text-orange-400" :
-                                                                "text-slate-500"
+                                                    anchorCount >= 5 ? "text-amber-400" :
+                                                        anchorCount > 0 ? "text-orange-400" :
+                                                            "text-slate-500"
                                                     }`}>
                                                     {anchorCount}/14
                                                 </span>
@@ -297,8 +297,8 @@ export default function SocialStudioPage() {
                                         <div className="mt-3 h-2 bg-slate-800 rounded-full overflow-hidden">
                                             <div
                                                 className={`h-full transition-all duration-500 ${anchorCount >= 10 ? "bg-gradient-to-r from-emerald-500 to-emerald-400" :
-                                                        anchorCount >= 5 ? "bg-gradient-to-r from-amber-500 to-amber-400" :
-                                                            "bg-gradient-to-r from-orange-500 to-orange-400"
+                                                    anchorCount >= 5 ? "bg-gradient-to-r from-amber-500 to-amber-400" :
+                                                        "bg-gradient-to-r from-orange-500 to-orange-400"
                                                     }`}
                                                 style={{ width: `${anchorCount / 14 * 100}%` }}
                                             />
@@ -368,14 +368,14 @@ export default function SocialStudioPage() {
                                         disabled={isGenerating || !selectedAgent || !campaignTitle}
                                         className="flex-1 px-6 py-3 bg-gradient-to-r from-violet-600 to-fuchsia-600 rounded-xl font-semibold text-white shadow-lg shadow-violet-500/30 hover:shadow-violet-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
-                                        {isGenerating ? "⏳ Generating..." : "✨ Generate Copy"}
+                                        {isGenerating ? "⏳ Generating..." : "⚡ Broadcast Copy"}
                                     </button>
                                     <button
                                         onClick={handleGenerateImage}
                                         disabled={isGenerating || !selectedAgent || !campaignTitle}
                                         className="flex-1 px-6 py-3 bg-gradient-to-r from-pink-600 to-rose-600 rounded-xl font-semibold text-white shadow-lg shadow-pink-500/30 hover:shadow-pink-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
-                                        {isGenerating ? "⏳ Generating..." : "📸 Generate Image"}
+                                        {isGenerating ? "⏳ Generating..." : "📸 Broadcast Image"}
                                     </button>
                                 </div>
                             </div>
@@ -490,9 +490,22 @@ export default function SocialStudioPage() {
                             {(generatedCopy || generatedImage) && (
                                 <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 rounded-2xl p-6 border border-white/5">
                                     <div className="flex items-center justify-between mb-4">
-                                        <h2 className="text-lg font-semibold text-slate-200">
-                                            👀 Platform Preview
-                                        </h2>
+                                        <div className="flex items-center gap-3">
+                                            <h2 className="text-lg font-semibold text-slate-200">
+                                                👀 Platform Preview
+                                            </h2>
+                                            {/* Platform Badge */}
+                                            <span
+                                                className="px-3 py-1 rounded-full text-sm font-bold border"
+                                                style={{
+                                                    backgroundColor: `${PLATFORM_CONFIG[selectedPlatform].color}20`,
+                                                    borderColor: `${PLATFORM_CONFIG[selectedPlatform].color}50`,
+                                                    color: PLATFORM_CONFIG[selectedPlatform].color === "#000000" ? "#fff" : PLATFORM_CONFIG[selectedPlatform].color
+                                                }}
+                                            >
+                                                {PLATFORM_CONFIG[selectedPlatform].icon} {selectedPlatform}
+                                            </span>
+                                        </div>
                                         {/* Brand Fidelity Indicator */}
                                         {generatedImage && (
                                             <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-bold ${anchorsUsed >= 10
