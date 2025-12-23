@@ -137,6 +137,13 @@ export default function MediaLibraryPage() {
     // ─── Rate-Limited Processing (Gemini Vision requires cool-down) ───────────
 
     const processUpload = async (uploadId: string, file: File): Promise<void> => {
+        // Guard: Check if this upload is already being processed or completed
+        const existingUpload = uploadQueue.find(u => u.id === uploadId);
+        if (existingUpload?.status === "complete" || existingUpload?.status === "uploading" || existingUpload?.status === "syncing") {
+            console.log(`[GUARD] Skipping duplicate processing for ${file.name}`);
+            return;
+        }
+
         const fileSize = file.size;
         setUploadQueue(prev => prev.map(u => u.id === uploadId ? { ...u, status: "analyzing", progress: 10 } : u));
         setIngestLogs(prev => [`> [${new Date().toLocaleTimeString()}] SCANNING: ${file.name.toUpperCase()} (${(fileSize / 1024 / 1024).toFixed(2)} MB)`, ...prev].slice(0, 100));
