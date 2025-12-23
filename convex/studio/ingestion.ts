@@ -247,8 +247,11 @@ export const smartAgenticUpload = action({
             const agent = args.overrideAgent || (analysis.agent !== "unknown" ? analysis.agent as "cassie" | "eleanor" | "julian" : "julian");
             const slot = args.overrideSlot || analysis.slot;
 
-            // Precise naming from Digital Registrar
-            const finalPublicId = analysis.suggestedName || `LD_BIBLE_${agent.toUpperCase()}_${String(slot).padStart(2, "0")}_${analysis.role}_${timestamp}`;
+            // TASK 2: Force unique filenames to prevent Cloudinary conflicts
+            // Append timestamp + random suffix to ensure uniqueness
+            const uniqueSuffix = `${timestamp}_${Math.random().toString(36).substring(2, 6)}`;
+            const baseName = analysis.suggestedName || `LD_BIBLE_${agent.toUpperCase()}_${String(slot).padStart(2, "0")}_${analysis.role}`;
+            const finalPublicId = `${baseName}_${uniqueSuffix}`;
             const folder = `Luminous Deep/Visual_Bible/${agent}`;
 
             log(agent, `Identity confirmed (${Math.round(analysis.confidence * 100)}%). Mapping to Slot ${slot}.`);

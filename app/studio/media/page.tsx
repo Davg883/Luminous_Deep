@@ -134,8 +134,7 @@ export default function MediaLibraryPage() {
     };
 
     // ─── Smart Ingest Handlers ────────────────────────────────────
-    // ─── FIBRE-OPTIMIZED: 10-way Concurrent Processing ───────────
-    const CONCURRENCY_LIMIT = 10; // Max simultaneous uploads for fibre saturation
+    // ─── Rate-Limited Processing (Gemini Vision requires cool-down) ───────────
 
     const processUpload = async (uploadId: string, file: File): Promise<void> => {
         const fileSize = file.size;
@@ -174,14 +173,46 @@ export default function MediaLibraryPage() {
                     `✓ [${new Date().toLocaleTimeString()}] ${result.agent?.toUpperCase()} LOCKED → Slot ${String(result.slot).padStart(2, "0")} (${result.role})`,
                     ...prev
                 ].slice(0, 100));
+
+                // Task 4: Clear completed item from queue after 2 seconds
+                setTimeout(() => {
+                    setUploadQueue(prev => prev.filter(u => u.id !== uploadId));
+                }, 2000);
             }
         } catch (error: any) {
-            setUploadQueue(prev => prev.map(u => u.id === uploadId ? { ...u, status: "error", log: error.message } : u));
-            setIngestLogs(prev => [`✗ [${new Date().toLocaleTimeString()}] ERROR: ${file.name.toUpperCase()} - ${error.message}`, ...prev].slice(0, 100));
+            const errorMsg = error.message || "Unknown error";
+
+            // Task 3: Detect rate limit / quota errors
+            const isRateLimit = errorMsg.toLowerCase().includes("rate") ||
+                errorMsg.toLowerCase().includes("quota") ||
+                errorMsg.toLowerCase().includes("429") ||
+                errorMsg.toLowerCase().includes("limit");
+
+            setUploadQueue(prev => prev.map(u => u.id === uploadId ? { ...u, status: "error", log: errorMsg } : u));
+
+            if (isRateLimit) {
+                setIngestLogs(prev => [
+                    `✗ [${new Date().toLocaleTimeString()}] API Congestion detected. Pausing for 2 seconds...`,
+                    `✗ [${new Date().toLocaleTimeString()}] ERROR: ${file.name.toUpperCase()} - ${errorMsg}`,
+                    ...prev
+                ].slice(0, 100));
+                // Wait 2 seconds before continuing
+                await new Promise(resolve => setTimeout(resolve, 2000));
+            } else {
+                setIngestLogs(prev => [
+                    `✗ [${new Date().toLocaleTimeString()}] ERROR: ${file.name.toUpperCase()} - ${errorMsg}`,
+                    ...prev
+                ].slice(0, 100));
+            }
         }
     };
 
-    // P-Limit style chunked concurrency for fibre saturation
+    // P-Limit style chunked concurrency with cool-down for API rate limits
+    const CONCURRENCY_LIMIT = 2; // Reduced from 10 to prevent rate limiting
+    const COOL_DOWN_MS = 1500; // 1.5 second delay between files for Gemini Vision
+
+    const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
     const processWithConcurrencyLimit = async (uploads: ActiveUpload[], limit: number): Promise<void> => {
         const queue = [...uploads];
         const executing: Promise<void>[] = [];
@@ -189,6 +220,13 @@ export default function MediaLibraryPage() {
         while (queue.length > 0 || executing.length > 0) {
             while (executing.length < limit && queue.length > 0) {
                 const upload = queue.shift()!;
+
+                // Add cool-down delay before starting each new upload
+                if (executing.length > 0 || queue.length < uploads.length - 1) {
+                    setIngestLogs(prev => [`> SYSTEM: Cool-down... (${COOL_DOWN_MS}ms between files)`, ...prev].slice(0, 100));
+                    await delay(COOL_DOWN_MS);
+                }
+
                 const promise = processUpload(upload.id, upload.file).then(() => {
                     executing.splice(executing.indexOf(promise), 1);
                 });
