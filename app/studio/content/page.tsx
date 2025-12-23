@@ -29,7 +29,7 @@ type Tab = "Library" | "Strategy" | "Write" | "Scenes";
 
 export default function ContentFactoryPage() {
     const packs = useQuery(api.studio.content.listPacks);
-    const allReveals = useQuery(api.studio.content.listAllReveals);
+    const unifiedContent = useQuery(api.studio.content.listUnifiedContent);
     const scenes = useQuery(api.studio.scenes.getAllScenes);
 
     const importPack = useMutation(api.studio.content.importPack);
@@ -263,15 +263,15 @@ export default function ContentFactoryPage() {
     }, [packs, searchQuery, statusFilter, domainFilter]);
 
     const filteredReveals = useMemo(() => {
-        if (!allReveals) return [];
-        return (allReveals as any[]).filter(r => {
+        if (!unifiedContent) return [];
+        return (unifiedContent as any[]).filter(r => {
             const matchesSearch = (r.title || "").toLowerCase().includes(searchQuery.toLowerCase());
-            const revealStatus = !r.isLinked ? "Unlinked" : (r.status === "published" ? "Published" : r.status === "draft" ? "Draft" : "Review");
+            const revealStatus = !r.isLinked && r.status === "Published" ? "Unlinked" : (r.status || "Draft");
             const matchesStatus = statusFilter === "All" || revealStatus === statusFilter;
             const matchesPhase = phaseFilter === "All" || r.phase === phaseFilter;
             return matchesSearch && matchesStatus && matchesPhase;
         });
-    }, [allReveals, searchQuery, statusFilter, phaseFilter]);
+    }, [unifiedContent, searchQuery, statusFilter, phaseFilter]);
 
     if (packs === undefined || scenes === undefined) return <div className="p-8">Loading Factory...</div>;
 
@@ -351,7 +351,7 @@ export default function ContentFactoryPage() {
                                     <tr key={room}>
                                         <td className="p-3 font-medium text-gray-900 bg-gray-50 border border-gray-200 capitalize">{room}</td>
                                         {["early_year", "spring", "summer", "autumn", "winter"].map(phase => {
-                                            const count = (allReveals || []).filter((r: any) =>
+                                            const count = (unifiedContent || []).filter((r: any) =>
                                                 r.scene_slug === room && r.phase === phase
                                             ).length;
                                             return (
@@ -385,7 +385,7 @@ export default function ContentFactoryPage() {
                         <h3 className="font-bold text-gray-700 text-sm mb-2">Quick Stats</h3>
                         <div className="grid grid-cols-5 gap-4 text-center">
                             {["early_year", "spring", "summer", "autumn", "winter"].map(phase => {
-                                const total = (allReveals || []).filter((r: any) => r.phase === phase).length;
+                                const total = (unifiedContent || []).filter((r: any) => r.phase === phase).length;
                                 return (
                                     <div key={phase} className="bg-white p-3 rounded-lg border border-gray-200">
                                         <div className="text-2xl font-black text-indigo-600">{total}</div>
@@ -462,61 +462,94 @@ export default function ContentFactoryPage() {
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
                                     {filteredReveals.length === 0 ? (
-                                        <tr><td colSpan={5} className="px-4 py-12 text-center text-gray-400">No reveals found.</td></tr>
-                                    ) : filteredReveals.map((reveal: any) => {
-                                        const displayStatus = !reveal.isLinked ? "Unlinked" : reveal.status || "Draft";
-                                        const isSelected = previewData?._id === reveal._id;
+                                        <tr><td colSpan={5} className="px-4 py-12 text-center text-gray-400">No items found.</td></tr>
+                                    ) : filteredReveals.map((item: any) => {
+                                        const isDraft = item.source === "pack";
+                                        const isPublished = item.status === "Published";
+                                        const displayStatus = isDraft
+                                            ? "DRAFT"
+                                            : (!item.isLinked ? "Unlinked" : "PUBLISHED");
+
+                                        const badgeColor = isDraft ? "bg-blue-100 text-blue-700" : (displayStatus === "Unlinked" ? "bg-purple-100 text-purple-700" : "bg-green-100 text-green-700");
+
+                                        const isSelected = previewData?._id === item._id;
                                         return (
                                             <tr
-                                                key={reveal._id}
+                                                key={item._id}
                                                 className={clsx("transition-colors cursor-pointer", isSelected ? "bg-indigo-50 border-l-4 border-l-indigo-500" : "hover:bg-gray-50")}
-                                                onClick={() => setPreviewData(reveal)}
+                                                onClick={() => setPreviewData(item.packData || item)}
                                             >
                                                 <td className="px-4 py-3">
-                                                    <div className="text-sm font-bold text-gray-900">{reveal.title || "Untitled"}</div>
-                                                    <div className="text-[10px] text-gray-400 truncate max-w-[200px]">{(reveal.content || "").substring(0, 50)}...</div>
+                                                    <div className="text-sm font-bold text-gray-900">{item.title || "Untitled"}</div>
+                                                    <div className="text-[10px] text-gray-400 truncate max-w-[200px]">{(item.content || "").substring(0, 50)}...</div>
                                                 </td>
                                                 <td className="px-4 py-3">
-                                                    <div className="text-xs font-medium text-indigo-600 uppercase">{reveal.type || "text"}</div>
-                                                    {reveal.voice && <div className="text-[10px] text-gray-500 capitalize">{reveal.voice}</div>}
+                                                    <div className="text-xs font-medium text-indigo-600 uppercase">{item.type || "text"}</div>
+                                                    {item.voice && <div className="text-[10px] text-gray-500 capitalize">{item.voice}</div>}
                                                 </td>
                                                 <td className="px-4 py-3">
-                                                    <span className={clsx("px-2 py-0.5 rounded text-[10px] font-black uppercase",
-                                                        displayStatus === "published" ? "bg-green-100 text-green-700" :
-                                                            displayStatus === "Unlinked" ? "bg-purple-100 text-purple-700" : "bg-blue-100 text-blue-700"
-                                                    )}>{displayStatus}</span>
+                                                    <span className={clsx("px-2 py-0.5 rounded text-[10px] font-black uppercase", badgeColor)}>{displayStatus}</span>
                                                 </td>
                                                 <td className="px-4 py-3 text-xs text-gray-500">
                                                     <div className="flex items-center gap-1 group/loc">
                                                         <select
-                                                            value={reveal.scene_slug}
+                                                            value={item.scene_slug}
                                                             onClick={(e) => e.stopPropagation()}
                                                             onChange={async (e) => {
                                                                 e.stopPropagation();
-                                                                await reassignRevealSpace({ revealId: reveal._id, newSceneSlug: e.target.value });
+                                                                if (isPublished) {
+                                                                    await reassignRevealSpace({ revealId: item._id as Id<"reveals">, newSceneSlug: e.target.value });
+                                                                } else {
+                                                                    // For drafts, we might update the pack (not implemented yet in list, but harmless fallback)
+                                                                    alert("Edit the draft to change its target scene.");
+                                                                }
                                                             }}
-                                                            className="bg-transparent font-medium border-b border-transparent hover:border-gray-300 focus:border-indigo-500 outline-none text-gray-700 cursor-pointer py-0.5 max-w-[120px]"
+                                                            disabled={isDraft}
+                                                            className={clsx(
+                                                                "bg-transparent font-medium border-b border-transparent outline-none text-gray-700 py-0.5 max-w-[120px]",
+                                                                !isDraft && "hover:border-gray-300 focus:border-indigo-500 cursor-pointer",
+                                                                isDraft && "opacity-50 cursor-not-allowed"
+                                                            )}
                                                         >
                                                             {scenes?.map((s: any) => (
                                                                 <option key={s._id} value={s.slug}>{s.title}</option>
                                                             ))}
                                                         </select>
-                                                        {reveal.isLinked ? (
+                                                        {item.isLinked ? (
                                                             <MapPin className="w-3 h-3 text-gray-300 group-hover/loc:text-indigo-500 transition-colors" />
                                                         ) : (
-                                                            <span className="text-[9px] font-black text-amber-600 bg-amber-50 px-1 rounded animate-pulse">UNPLACED</span>
+                                                            !isDraft && <span className="text-[9px] font-black text-amber-600 bg-amber-50 px-1 rounded animate-pulse">UNPLACED</span>
                                                         )}
                                                     </div>
                                                 </td>
                                                 <td className="px-4 py-3 text-right">
                                                     <div className="flex justify-end gap-2 items-center">
-                                                        {!reveal.isLinked && (
+                                                        {isDraft && (
+                                                            <button
+                                                                onClick={async (e) => {
+                                                                    e.stopPropagation();
+                                                                    const confirmed = confirm(`Publish "${item.title}" to the Canon?`);
+                                                                    if (confirmed) {
+                                                                        try {
+                                                                            await publishPack({ id: item._id as Id<"contentPacks"> });
+                                                                        } catch (err: any) {
+                                                                            alert("Publish failed: " + err.message);
+                                                                        }
+                                                                    }
+                                                                }}
+                                                                className="text-xs bg-blue-600 text-white px-3 py-1 rounded font-bold hover:bg-blue-700 flex items-center gap-1 transition-colors shadow-sm"
+                                                            >
+                                                                🚀 Publish
+                                                            </button>
+                                                        )}
+
+                                                        {isPublished && !item.isLinked && (
                                                             <button
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
                                                                     const fallbackSlug = (scenes || []).find((s: any) => s._id === selectedSceneId)?.slug || "workshop";
-                                                                    const targetSlug = reveal.scene_slug || fallbackSlug;
-                                                                    router.push(`/studio/content/${targetSlug}?placeReveal=${reveal._id}`);
+                                                                    const targetSlug = item.scene_slug || fallbackSlug;
+                                                                    router.push(`/studio/content/${targetSlug}?placeReveal=${item._id}`);
                                                                 }}
                                                                 className="text-xs bg-orange-100 text-orange-700 px-2 py-1.5 rounded font-bold hover:bg-orange-200 flex items-center gap-1 transition-colors"
                                                             >
@@ -526,7 +559,10 @@ export default function ContentFactoryPage() {
                                                         <button
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
-                                                                if (confirm("Delete this reveal?")) deleteReveal({ id: reveal._id });
+                                                                if (confirm(`Delete this ${isDraft ? "Draft" : "Reveal"}?`)) {
+                                                                    if (isDraft) deletePack({ id: item._id as Id<"contentPacks"> });
+                                                                    else deleteReveal({ id: item._id as Id<"reveals"> });
+                                                                }
                                                             }}
                                                             className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
                                                         >
@@ -540,7 +576,7 @@ export default function ContentFactoryPage() {
                                 </tbody>
                             </table>
                             <div className="px-4 py-2 bg-gray-50 border-t text-xs text-gray-500 sticky bottom-0">
-                                {filteredReveals.length} of {allReveals?.length || 0} reveals
+                                {filteredReveals.length} of {unifiedContent?.length || 0} items
                             </div>
                         </div>
                     </div>
