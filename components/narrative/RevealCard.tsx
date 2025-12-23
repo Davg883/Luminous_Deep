@@ -189,19 +189,23 @@ export default function RevealCard({
                         )}>
                             {/* Media Handler */}
                             <motion.div variants={itemVariants} className="w-full">
-                                {type === 'image' && mediaUrl && (
-                                    <div className="mb-4 rounded overflow-hidden border border-current/10">
-                                        <img src={mediaUrl} alt={title} className="w-full h-auto grayscale hover:grayscale-0 transition-all duration-700" />
+                                {mediaUrl && (
+                                    <div className="mb-4 rounded-lg overflow-hidden border border-current/10 bg-black/5 shadow-inner">
+                                        {/* Auto-detect video vs image by extension if possible, or fallback to type. 
+                                            Actually, let's rely on type or extension because type might be 'text' but have an image attached. */}
+                                        {mediaUrl.match(/\.(mp4|webm|mov)$/i) || type === 'video' ? (
+                                            <video src={mediaUrl} controls className="w-full max-h-64 object-cover" />
+                                        ) : (
+                                            <img
+                                                src={mediaUrl}
+                                                alt={title}
+                                                className="w-full max-h-64 object-cover grayscale hover:grayscale-0 transition-all duration-700 animate-in fade-in zoom-in duration-1000"
+                                            />
+                                        )}
                                     </div>
                                 )}
 
-                                {type === 'video' && mediaUrl && (
-                                    <div className="mb-4 rounded overflow-hidden border border-current/10">
-                                        <video src={mediaUrl} controls className="w-full h-auto" />
-                                    </div>
-                                )}
-
-                                {type === 'audio' && (
+                                {type === 'audio' && !mediaUrl?.match(/\.(mp4|webm|mov|jpg|jpeg|png|webp|gif)$/i) && (
                                     <div className="mb-4 p-3 bg-current/5 rounded border border-current/10">
                                         <div className="flex items-center gap-2 mb-2">
                                             <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />

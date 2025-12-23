@@ -8,7 +8,147 @@ import { Id } from "@/convex/_generated/dataModel";
 import clsx from "clsx";
 import { ContentPreview } from "@/components/studio/ContentPreview";
 import Link from "next/link";
-import { Trash2, MapPin, Brain } from "lucide-react";
+import { Trash2, MapPin, Brain, Edit, CheckCircle, XCircle } from "lucide-react";
+
+// ═══════════════════════════════════════════════════════════════
+// EDITOR COMPONENT (Inline for simplicity)
+// ═══════════════════════════════════════════════════════════════
+function RevealEditor({ data, onSave, onCancel }: { data: any, onSave: (updates: any) => Promise<void>, onCancel?: () => void }) {
+    const [formData, setFormData] = useState({
+        title: data.title || "",
+        content: data.bodyCopy || data.content || "",
+        mediaUrl: data.mediaRefs || data.mediaUrl || "",
+        phase: data.phase || "early_year"
+    });
+    const [isSaving, setIsSaving] = useState(false);
+    const [isDirty, setIsDirty] = useState(false);
+
+    useEffect(() => {
+        setFormData({
+            title: data.title || "",
+            content: data.bodyCopy || data.content || "",
+            mediaUrl: data.mediaRefs || data.mediaUrl || "",
+            phase: data.phase || "early_year"
+        });
+        setIsDirty(false);
+    }, [data]);
+
+    const handleChange = (field: string, value: any) => {
+        setFormData(prev => ({ ...prev, [field]: value }));
+        setIsDirty(true);
+    };
+
+    const handleSave = async () => {
+        setIsSaving(true);
+        try {
+            await onSave(formData);
+            setIsDirty(false);
+        } catch (e) {
+            console.error("Save failed", e);
+            alert("Failed to save changes.");
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    return (
+        <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden flex flex-col h-full">
+            <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                <h3 className="font-bold text-gray-700 flex items-center gap-2">
+                    <Edit className="w-4 h-4 text-indigo-500" />
+                    Edit Reveal
+                </h3>
+                {isDirty && <span className="text-[10px] font-bold text-amber-500 bg-amber-50 px-2 py-1 rounded">Unsaved Changes</span>}
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+                {/* Title */}
+                <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Title</label>
+                    <input
+                        type="text"
+                        value={formData.title}
+                        onChange={(e) => handleChange("title", e.target.value)}
+                        className="w-full text-lg font-bold border-b-2 border-gray-200 focus:border-indigo-500 outline-none py-1 bg-transparent transition-colors"
+                        placeholder="Enter title..."
+                    />
+                </div>
+
+                {/* Media URL */}
+                <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Media URL (Image/Video)</label>
+                    <div className="flex gap-2">
+                        <input
+                            type="text"
+                            value={formData.mediaUrl}
+                            onChange={(e) => handleChange("mediaUrl", e.target.value)}
+                            className="flex-1 text-sm border border-gray-200 rounded px-3 py-2 focus:ring-2 focus:ring-indigo-500/20 outline-none font-mono text-gray-600"
+                            placeholder="https://res.cloudinary.com/..."
+                        />
+                    </div>
+                    {formData.mediaUrl && (
+                        <div className="mt-2 relative h-32 w-full bg-gray-100 rounded overflow-hidden border border-gray-200">
+                            <img src={formData.mediaUrl} alt="Preview" className="w-full h-full object-cover opacity-80" />
+                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                <span className="bg-black/50 text-white text-[10px] px-2 py-1 rounded">Preview</span>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 flex flex-col">
+                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Content (Markdown)</label>
+                    <textarea
+                        value={formData.content}
+                        onChange={(e) => handleChange("content", e.target.value)}
+                        className="flex-1 min-h-[200px] w-full text-sm leading-relaxed border border-gray-200 rounded-lg p-4 focus:ring-2 focus:ring-indigo-500/20 outline-none font-mono text-gray-700 resize-none"
+                        placeholder="Write your story here..."
+                    />
+                </div>
+
+                {/* Phase */}
+                <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Narrative Phase</label>
+                    <select
+                        value={formData.phase}
+                        onChange={(e) => handleChange("phase", e.target.value)}
+                        className="w-full text-sm border border-gray-200 rounded px-3 py-2 outline-none"
+                    >
+                        <option value="early_year">Early Year</option>
+                        <option value="spring">Spring</option>
+                        <option value="summer">Summer</option>
+                        <option value="autumn">Autumn</option>
+                        <option value="winter">Winter</option>
+                    </select>
+                </div>
+            </div>
+
+            <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-end gap-3">
+                {onCancel && (
+                    <button
+                        onClick={onCancel}
+                        className="px-4 py-2 text-sm font-bold text-gray-500 hover:text-gray-700 transition-colors"
+                    >
+                        Cancel
+                    </button>
+                )}
+                <button
+                    onClick={handleSave}
+                    disabled={isSaving || !isDirty}
+                    className={clsx(
+                        "px-6 py-2 rounded-lg text-sm font-bold text-white shadow-sm flex items-center gap-2 transition-all",
+                        isSaving ? "bg-indigo-400 cursor-wait" : (isDirty ? "bg-indigo-600 hover:bg-indigo-700 hover:shadow-md" : "bg-gray-300 cursor-not-allowed")
+                    )}
+                >
+                    {isSaving ? "Saving..." : "💾 Save Changes"}
+                </button>
+            </div>
+        </div>
+    );
+}
+
+
 
 function MediaResolverStatus({ publicId }: { publicId: string }) {
     const asset = useQuery(api.studio.content.resolveMedia, { publicId });
@@ -40,6 +180,7 @@ export default function ContentFactoryPage() {
     const reassignRevealSpace = useMutation(api.studio.content.reassignRevealSpace);
     const triggerReindex = useAction((api.studio.rag as any).triggerReindex);
     const generateAndUploadImage = useAction(api.studio.imaging.generateAndUploadImage);
+    const updateReveal = useMutation(api.studio.content.updateReveal);
 
     const router = useRouter();
 
@@ -575,6 +716,20 @@ export default function ContentFactoryPage() {
                                                 </td>
                                                 <td className="px-4 py-3 text-right">
                                                     <div className="flex justify-end gap-2 items-center">
+                                                        {/* Edit Button */}
+                                                        {!isDraft && (
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setPreviewData(item.packData || item);
+                                                                }}
+                                                                className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors"
+                                                                title="Edit Reveal"
+                                                            >
+                                                                <Edit className="w-4 h-4" />
+                                                            </button>
+                                                        )}
+
                                                         {isDraft && (
                                                             <button
                                                                 onClick={async (e) => {
@@ -630,229 +785,255 @@ export default function ContentFactoryPage() {
                                 {filteredReveals.length} of {unifiedContent?.length || 0} items
                             </div>
                         </div>
+
                     </div>
 
                     <div className="flex flex-col h-[75vh] sticky top-4">
                         <h2 className="text-lg font-bold mb-3 flex items-center gap-2">
-                            Preview
+                            {previewData ? (previewData.source === 'pack' ? "Preview" : "Editor") : "Inspector"}
                             {previewData && <span className="bg-purple-100 text-purple-700 text-[10px] font-black px-2 py-0.5 rounded">LIBRARY</span>}
                         </h2>
                         {previewData ? (
-                            <div className="flex flex-col h-full gap-4 relative">
-                                <ContentPreview pack={previewData} sceneTitle={previewData.linkedSceneName || "Unplaced"} />
-                                <button
-                                    onClick={() => {
-                                        const targetSlug = previewData.scene_slug || previewData.domain || "workshop";
-                                        router.push(`/studio/content/${targetSlug}?placeReveal=${previewData._id}`);
+                            // Determine if we show Editor or Preview
+                            // Show Editor if it's an existing reveal (has _id and NOT source='pack', though our unified query marks drafts)
+                            (!previewData.source || previewData.source !== 'pack') ? (
+                                <RevealEditor
+                                    data={previewData}
+                                    onSave={async (updates) => {
+                                        await updateReveal({
+                                            id: previewData._id,
+                                            ...updates
+                                        });
+                                        // Opt: Update local state to reflect changes immediately or rely on re-fetch
+                                        // For now, close preview to refresh list? Or just let subscription handle it?
+                                        // Re-fetching might be auto because of Convex useQuery subscription.
+                                        alert("Reveal updated successfully.");
                                     }}
-                                    className="absolute top-16 right-8 bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 px-6 rounded-xl shadow-2xl z-[9999] flex items-center gap-2 animate-bounce cursor-pointer border-2 border-white/20"
-                                >
-                                    <MapPin className="w-6 h-6" />
-                                    <span>ANCHOR TO {(previewData.scene_slug || previewData.domain || "SCENE").toUpperCase()}</span>
-                                </button>
-                            </div>
+                                    onCancel={() => setPreviewData(null)}
+                                />
+                            ) : (
+                                <div className="flex flex-col h-full gap-4 relative">
+                                    <ContentPreview pack={previewData} sceneTitle={previewData.linkedSceneName || "Unplaced"} />
+                                    <button
+                                        onClick={() => {
+                                            const targetSlug = previewData.scene_slug || previewData.domain || "workshop";
+                                            router.push(`/studio/content/${targetSlug}?placeReveal=${previewData._id}`);
+                                        }}
+                                        className="absolute top-16 right-8 bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 px-6 rounded-xl shadow-2xl z-[9999] flex items-center gap-2 animate-bounce cursor-pointer border-2 border-white/20"
+                                    >
+                                        <MapPin className="w-6 h-6" />
+                                        <span>ANCHOR TO {(previewData.scene_slug || previewData.domain || "SCENE").toUpperCase()}</span>
+                                    </button>
+                                </div>
+                            )
                         ) : (
                             <div className="flex-1 border-2 border-dashed border-gray-200 rounded-xl flex items-center justify-center text-gray-400 text-center p-8">
-                                <p>Click a row to preview</p>
+                                <p>Click a row to edit or preview</p>
                             </div>
                         )}
                     </div>
-                </div>
+                </div >
             )}
 
             {/* TAB: REVIEW (Legacy - for content pack drafts) */}
-            {(activeTab as string) === "Review" && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <div className="space-y-4 overflow-y-auto max-h-[80vh] pr-2 custom-scrollbar">
-                        <h2 className="text-lg font-bold flex items-center gap-2">
-                            <span className="w-3 h-3 bg-yellow-400 rounded-full animate-pulse"></span>
-                            Review Queue ({(packs || []).filter((p: any) => p.status === "Review" || p.status === "Draft").length})
-                        </h2>
-                        {(packs || []).filter((p: any) => p.status === "Review" || p.status === "Draft").map((pack: any) => (
-                            <div key={pack._id} className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:border-indigo-300 transition-all cursor-pointer group" onClick={() => setPreviewData(pack)}>
-                                <div className="flex justify-between items-start mb-4">
-                                    <div>
-                                        <h3 className="font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">{pack.title}</h3>
-                                        <p className="text-xs text-gray-500 font-mono uppercase tracking-tight">{pack.domain} / {(scenes || []).find((s: any) => s._id === pack.sceneId)?.title}</p>
+            {
+                (activeTab as string) === "Review" && (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <div className="space-y-4 overflow-y-auto max-h-[80vh] pr-2 custom-scrollbar">
+                            <h2 className="text-lg font-bold flex items-center gap-2">
+                                <span className="w-3 h-3 bg-yellow-400 rounded-full animate-pulse"></span>
+                                Review Queue ({(packs || []).filter((p: any) => p.status === "Review" || p.status === "Draft").length})
+                            </h2>
+                            {(packs || []).filter((p: any) => p.status === "Review" || p.status === "Draft").map((pack: any) => (
+                                <div key={pack._id} className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:border-indigo-300 transition-all cursor-pointer group" onClick={() => setPreviewData(pack)}>
+                                    <div className="flex justify-between items-start mb-4">
+                                        <div>
+                                            <h3 className="font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">{pack.title}</h3>
+                                            <p className="text-xs text-gray-500 font-mono uppercase tracking-tight">{pack.domain} / {(scenes || []).find((s: any) => s._id === pack.sceneId)?.title}</p>
+                                        </div>
+                                        <span className="bg-yellow-100 text-yellow-800 text-[10px] font-black px-2 py-0.5 rounded">NEEDS REVIEW</span>
                                     </div>
-                                    <span className="bg-yellow-100 text-yellow-800 text-[10px] font-black px-2 py-0.5 rounded">NEEDS REVIEW</span>
+                                    <p className="text-sm text-gray-600 line-clamp-3 mb-4 leading-relaxed italic">"{pack.bodyCopy}"</p>
+                                    <div className="flex justify-end gap-2">
+                                        <button onClick={(e) => { e.stopPropagation(); updatePack({ id: pack._id, status: "Draft" }); }} className="text-xs font-bold px-3 py-1 rounded bg-gray-100 text-gray-600 hover:bg-gray-200">Reject</button>
+                                        <button
+                                            onClick={async (e) => {
+                                                e.stopPropagation();
+                                                setPublishingIds(prev => new Set(prev).add(pack._id));
+                                                try {
+                                                    await publishPack({ id: pack._id });
+                                                    setActiveTab("Library");
+                                                } catch (err) {
+                                                    alert("Publishing failed.");
+                                                } finally {
+                                                    setPublishingIds(prev => {
+                                                        const newSet = new Set(prev);
+                                                        newSet.delete(pack._id);
+                                                        return newSet;
+                                                    });
+                                                }
+                                            }}
+                                            disabled={publishingIds.has(pack._id)}
+                                            className="text-xs font-bold px-3 py-1 rounded bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 flex items-center gap-2"
+                                        >
+                                            Approve & Publish
+                                        </button>
+                                    </div>
                                 </div>
-                                <p className="text-sm text-gray-600 line-clamp-3 mb-4 leading-relaxed italic">"{pack.bodyCopy}"</p>
-                                <div className="flex justify-end gap-2">
-                                    <button onClick={(e) => { e.stopPropagation(); updatePack({ id: pack._id, status: "Draft" }); }} className="text-xs font-bold px-3 py-1 rounded bg-gray-100 text-gray-600 hover:bg-gray-200">Reject</button>
-                                    <button
-                                        onClick={async (e) => {
-                                            e.stopPropagation();
-                                            setPublishingIds(prev => new Set(prev).add(pack._id));
-                                            try {
-                                                await publishPack({ id: pack._id });
-                                                setActiveTab("Library");
-                                            } catch (err) {
-                                                alert("Publishing failed.");
-                                            } finally {
-                                                setPublishingIds(prev => {
-                                                    const newSet = new Set(prev);
-                                                    newSet.delete(pack._id);
-                                                    return newSet;
-                                                });
-                                            }
-                                        }}
-                                        disabled={publishingIds.has(pack._id)}
-                                        className="text-xs font-bold px-3 py-1 rounded bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 flex items-center gap-2"
-                                    >
-                                        Approve & Publish
-                                    </button>
+                            ))}
+                        </div>
+                        <div className="flex flex-col h-[80vh]">
+                            <h2 className="text-lg font-bold mb-4">Selected Preview</h2>
+                            {previewData ? (
+                                <ContentPreview
+                                    pack={previewData}
+                                    sceneTitle={(scenes || []).find((s: any) => s._id === previewData.sceneId)?.title}
+                                    sceneBackgroundUrl={(scenes || []).find((s: any) => s._id === previewData.sceneId)?.backgroundMediaUrl}
+                                />
+                            ) : (
+                                <div className="flex-1 border-2 border-dashed border-gray-200 rounded-xl flex items-center justify-center text-gray-400 text-center p-12">
+                                    <p>Select an item from the queue to preview it.</p>
                                 </div>
-                            </div>
-                        ))}
+                            )}
+                        </div>
                     </div>
-                    <div className="flex flex-col h-[80vh]">
-                        <h2 className="text-lg font-bold mb-4">Selected Preview</h2>
-                        {previewData ? (
-                            <ContentPreview
-                                pack={previewData}
-                                sceneTitle={(scenes || []).find((s: any) => s._id === previewData.sceneId)?.title}
-                                sceneBackgroundUrl={(scenes || []).find((s: any) => s._id === previewData.sceneId)?.backgroundMediaUrl}
-                            />
-                        ) : (
-                            <div className="flex-1 border-2 border-dashed border-gray-200 rounded-xl flex items-center justify-center text-gray-400 text-center p-12">
-                                <p>Select an item from the queue to preview it.</p>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            )}
+                )
+            }
 
             {/* TAB: WRITE */}
-            {activeTab === "Write" && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 h-[75vh]">
-                    <div className="flex flex-col gap-4">
-                        <div className="flex justify-between items-center">
-                            <h2 className="text-lg font-bold">Drop a Story Fragment</h2>
-                            <div className="flex gap-2">
-                                <button
-                                    onClick={handleAIProcess}
-                                    disabled={!jsonInput || isProcessingAI}
-                                    className="bg-purple-600 text-white px-4 py-1.5 rounded-md text-sm font-bold shadow-sm hover:shadow-md transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2"
-                                >
-                                    {isProcessingAI ? "Processing..." : "✨ Magic Paste (Gemini)"}
-                                </button>
-                                <button onClick={() => validateJson(jsonInput)} className="bg-indigo-600 text-white px-4 py-1.5 rounded-md text-sm font-bold shadow-sm hover:shadow-md transition-all">Validate</button>
-                                <button onClick={() => handleImport(false)} disabled={!previewData} className="bg-green-600 text-white px-4 py-1.5 rounded-md text-sm font-bold shadow-sm hover:shadow-md transition-all disabled:opacity-50">Save as Draft</button>
-                            </div>
-                        </div>
-
-                        <div className="flex-1 flex flex-col gap-4 overflow-hidden">
-                            <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm space-y-4">
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-4">
-                                        <div>
-                                            <label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Target Scene</label>
-                                            <select value={selectedSceneId} onChange={(e) => setSelectedSceneId(e.target.value as Id<"scenes">)} className="w-full text-sm font-bold border-none bg-gray-50 rounded-md p-2 outline-none">
-                                                <option value="">Select a scene...</option>
-                                                {(scenes || []).map((s: any) => <option key={s?._id} value={s?._id}>{s?.title} ({s?.domain})</option>)}
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Narrative Phase</label>
-                                            <select value={selectedPhase} onChange={(e) => setSelectedPhase(e.target.value as any)} className="w-full text-sm font-bold border-none bg-gray-50 rounded-md p-2 outline-none">
-                                                <option value="early_year">Early Year</option>
-                                                <option value="spring">Spring</option>
-                                                <option value="summer">Summer</option>
-                                                <option value="autumn">Autumn</option>
-                                                <option value="winter">Winter</option>
-                                            </select>
-                                        </div>
-                                    </div>
+            {
+                activeTab === "Write" && (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 h-[75vh]">
+                        <div className="flex flex-col gap-4">
+                            <div className="flex justify-between items-center">
+                                <h2 className="text-lg font-bold">Drop a Story Fragment</h2>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={handleAIProcess}
+                                        disabled={!jsonInput || isProcessingAI}
+                                        className="bg-purple-600 text-white px-4 py-1.5 rounded-md text-sm font-bold shadow-sm hover:shadow-md transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2"
+                                    >
+                                        {isProcessingAI ? "Processing..." : "✨ Magic Paste (Gemini)"}
+                                    </button>
+                                    <button onClick={() => validateJson(jsonInput)} className="bg-indigo-600 text-white px-4 py-1.5 rounded-md text-sm font-bold shadow-sm hover:shadow-md transition-all">Validate</button>
+                                    <button onClick={() => handleImport(false)} disabled={!previewData} className="bg-green-600 text-white px-4 py-1.5 rounded-md text-sm font-bold shadow-sm hover:shadow-md transition-all disabled:opacity-50">Save as Draft</button>
                                 </div>
                             </div>
 
-                            <div className="flex-1 relative">
-                                <textarea
-                                    className="w-full h-full bg-gray-900 text-indigo-300 font-mono text-xs p-6 rounded-xl border border-gray-700 shadow-xl outline-none focus:ring-2 focus:ring-indigo-500/50 resize-none"
-                                    placeholder='Paste a raw story fragment here...'
-                                    value={jsonInput}
-                                    onChange={(e) => {
-                                        setJsonInput(e.target.value);
-                                        if (e.target.value.trim().endsWith("}")) validateJson(e.target.value);
-                                    }}
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="flex flex-col gap-4 overflow-y-auto h-full pr-2 pb-24 custom-scrollbar">
-                        <h2 className="text-lg font-bold">Import Preview</h2>
-                        {previewData ? (
-                            <>
-                                <ContentPreview pack={previewData} sceneTitle={(scenes || []).find((s: any) => s._id === selectedSceneId)?.title} sceneBackgroundUrl={(scenes || []).find((s: any) => s._id === selectedSceneId)?.backgroundMediaUrl} />
-
-                                {/* Image Generation UI (The Darkroom) */}
-                                {(previewData.visual_prompt || previewData.image_prompt) && (
-                                    <div className="mt-4 p-6 bg-gray-900 rounded-xl border border-gray-800 shadow-xl relative group/darkroom">
-                                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 via-pink-500 to-indigo-500 opacity-50"></div>
-                                        <div className="flex justify-between items-center mb-3">
-                                            <span className="text-[10px] font-black text-purple-400 uppercase tracking-widest flex items-center gap-1.5">
-                                                <span className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(168,85,247,0.8)]"></span>
-                                                Darkroom Directive
-                                            </span>
-                                        </div>
-                                        <p className="text-xs text-purple-200 font-mono mb-4 leading-relaxed border-l-2 border-purple-500/30 pl-3 opacity-80 group-hover/darkroom:opacity-100 transition-opacity">
-                                            "{previewData.visual_prompt || previewData.image_prompt}"
-                                        </p>
-
-                                        <button
-                                            type="button"
-                                            onClick={handleGenerateImage}
-                                            disabled={isGeneratingImage}
-                                            className="mt-4 w-full flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-500 text-white py-2 px-4 rounded-md transition-all shadow-lg font-medium"
-                                        >
-                                            {isGeneratingImage ? (
-                                                <>
-                                                    <span className="animate-spin">⏳</span> Developing...
-                                                </>
-                                            ) : (
-                                                <>
-                                                    📸 Generate Visual
-                                                </>
-                                            )}
-                                        </button>
-                                        {previewData.generatedImageUrl && (
-                                            <div className="mt-4 rounded-lg overflow-hidden border border-gray-700 shadow-2xl relative">
-                                                <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-black/50 to-transparent"></div>
-                                                <img
-                                                    src={previewData.generatedImageUrl}
-                                                    alt={previewData.title}
-                                                    className="w-full h-auto object-cover"
-                                                />
+                            <div className="flex-1 flex flex-col gap-4 overflow-hidden">
+                                <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm space-y-4">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-4">
+                                            <div>
+                                                <label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Target Scene</label>
+                                                <select value={selectedSceneId} onChange={(e) => setSelectedSceneId(e.target.value as Id<"scenes">)} className="w-full text-sm font-bold border-none bg-gray-50 rounded-md p-2 outline-none">
+                                                    <option value="">Select a scene...</option>
+                                                    {(scenes || []).map((s: any) => <option key={s?._id} value={s?._id}>{s?.title} ({s?.domain})</option>)}
+                                                </select>
                                             </div>
-                                        )}
+                                            <div>
+                                                <label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Narrative Phase</label>
+                                                <select value={selectedPhase} onChange={(e) => setSelectedPhase(e.target.value as any)} className="w-full text-sm font-bold border-none bg-gray-50 rounded-md p-2 outline-none">
+                                                    <option value="early_year">Early Year</option>
+                                                    <option value="spring">Spring</option>
+                                                    <option value="summer">Summer</option>
+                                                    <option value="autumn">Autumn</option>
+                                                    <option value="winter">Winter</option>
+                                                </select>
+                                            </div>
+                                        </div>
                                     </div>
-                                )}
-                            </>
-                        ) : (
-                            <div className="flex-1 border-2 border-dashed border-gray-200 rounded-xl flex items-center justify-center text-gray-400 text-center p-12">
-                                <p>Write or paste your story to visualize it.</p>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            )}
+                                </div>
 
-            {overwriteConflict && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
-                    <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-full text-center">
-                        <h3 className="text-xl font-bold text-gray-900 mb-2">Overwrite Hotspot?</h3>
-                        <p className="text-gray-500 text-sm mb-8 leading-relaxed">
-                            A hotspot with ID <span className="font-mono bg-gray-100 px-1 rounded text-red-500">{overwriteConflict.id}</span> already exists.
-                        </p>
-                        <div className="grid grid-cols-2 gap-3">
-                            <button onClick={() => setOverwriteConflict(null)} className="px-4 py-3 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition-all">Cancel</button>
-                            <button onClick={() => handleImport(true)} className="px-4 py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 shadow-lg shadow-red-200 transition-all">Overwrite</button>
+                                <div className="flex-1 relative">
+                                    <textarea
+                                        className="w-full h-full bg-gray-900 text-indigo-300 font-mono text-xs p-6 rounded-xl border border-gray-700 shadow-xl outline-none focus:ring-2 focus:ring-indigo-500/50 resize-none"
+                                        placeholder='Paste a raw story fragment here...'
+                                        value={jsonInput}
+                                        onChange={(e) => {
+                                            setJsonInput(e.target.value);
+                                            if (e.target.value.trim().endsWith("}")) validateJson(e.target.value);
+                                        }}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col gap-4 overflow-y-auto h-full pr-2 pb-24 custom-scrollbar">
+                            <h2 className="text-lg font-bold">Import Preview</h2>
+                            {previewData ? (
+                                <>
+                                    <ContentPreview pack={previewData} sceneTitle={(scenes || []).find((s: any) => s._id === selectedSceneId)?.title} sceneBackgroundUrl={(scenes || []).find((s: any) => s._id === selectedSceneId)?.backgroundMediaUrl} />
+
+                                    {/* Image Generation UI (The Darkroom) */}
+                                    {(previewData.visual_prompt || previewData.image_prompt) && (
+                                        <div className="mt-4 p-6 bg-gray-900 rounded-xl border border-gray-800 shadow-xl relative group/darkroom">
+                                            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 via-pink-500 to-indigo-500 opacity-50"></div>
+                                            <div className="flex justify-between items-center mb-3">
+                                                <span className="text-[10px] font-black text-purple-400 uppercase tracking-widest flex items-center gap-1.5">
+                                                    <span className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(168,85,247,0.8)]"></span>
+                                                    Darkroom Directive
+                                                </span>
+                                            </div>
+                                            <p className="text-xs text-purple-200 font-mono mb-4 leading-relaxed border-l-2 border-purple-500/30 pl-3 opacity-80 group-hover/darkroom:opacity-100 transition-opacity">
+                                                "{previewData.visual_prompt || previewData.image_prompt}"
+                                            </p>
+
+                                            <button
+                                                type="button"
+                                                onClick={handleGenerateImage}
+                                                disabled={isGeneratingImage}
+                                                className="mt-4 w-full flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-500 text-white py-2 px-4 rounded-md transition-all shadow-lg font-medium"
+                                            >
+                                                {isGeneratingImage ? (
+                                                    <>
+                                                        <span className="animate-spin">⏳</span> Developing...
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        📸 Generate Visual
+                                                    </>
+                                                )}
+                                            </button>
+                                            {previewData.generatedImageUrl && (
+                                                <div className="mt-4 rounded-lg overflow-hidden border border-gray-700 shadow-2xl relative">
+                                                    <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-black/50 to-transparent"></div>
+                                                    <img
+                                                        src={previewData.generatedImageUrl}
+                                                        alt={previewData.title}
+                                                        className="w-full h-auto object-cover"
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                <div className="flex-1 border-2 border-dashed border-gray-200 rounded-xl flex items-center justify-center text-gray-400 text-center p-12">
+                                    <p>Write or paste your story to visualize it.</p>
+                                </div>
+                            )}
                         </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+
+            {
+                overwriteConflict && (
+                    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+                        <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-full text-center">
+                            <h3 className="text-xl font-bold text-gray-900 mb-2">Overwrite Hotspot?</h3>
+                            <p className="text-gray-500 text-sm mb-8 leading-relaxed">
+                                A hotspot with ID <span className="font-mono bg-gray-100 px-1 rounded text-red-500">{overwriteConflict.id}</span> already exists.
+                            </p>
+                            <div className="grid grid-cols-2 gap-3">
+                                <button onClick={() => setOverwriteConflict(null)} className="px-4 py-3 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition-all">Cancel</button>
+                                <button onClick={() => handleImport(true)} className="px-4 py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 shadow-lg shadow-red-200 transition-all">Overwrite</button>
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+        </div >
     );
 }
