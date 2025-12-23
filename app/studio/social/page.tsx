@@ -80,6 +80,8 @@ export default function SocialStudioPage() {
     const [activeTab, setActiveTab] = useState<"create" | "campaigns">("create");
     const [anchorsUsed, setAnchorsUsed] = useState<number>(0);
     const [copyAnchorsUsed, setCopyAnchorsUsed] = useState<number>(0);
+    const [currentRunId, setCurrentRunId] = useState<Id<"runs"> | null>(null);
+    const [isSaving, setIsSaving] = useState(false);
 
     // ─── Queries ─────────────────────────────────────────────────
     const agents = useQuery(api.studio.agents.listAgents);
@@ -89,6 +91,12 @@ export default function SocialStudioPage() {
     // ─── Actions ─────────────────────────────────────────────────
     const generateSocialPost = useAction(api.studio.ai.generateSocialPost);
     const generateNanoBananaAsset = useAction(api.studio.imaging.generateNanoBananaAsset);
+
+    // Archive Mutations & Queries
+    const campaigns = useQuery(api.studio.socialQueries.listCampaigns);
+    const saveCampaign = useMutation(api.studio.socialQueries.saveCampaign);
+    const updateStatus = useMutation(api.studio.socialQueries.updateCampaignStatus);
+    const resonate = useMutation(api.studio.socialQueries.resonateCampaign);
 
     // ─── Derived Data ────────────────────────────────────────────
     const selectedAgentData = useMemo(() => {
@@ -116,12 +124,47 @@ export default function SocialStudioPage() {
             });
             setGeneratedCopy(result.copy);
             setCopyAnchorsUsed(result.dnaAnchorsUsed || 0);
+            if (result.runId) setCurrentRunId(result.runId);
         } catch (error: any) {
             console.error("Generation error:", error);
             alert(`Failed to generate copy: ${error.message || "Unknown error"}`);
         } finally {
             setIsGenerating(false);
         }
+    };
+
+    const handleSaveCampaign = async () => {
+        if (!generatedCopy || !selectedAgent || !campaignTitle) return;
+
+        setIsSaving(true);
+        try {
+            await saveCampaign({
+                title: campaignTitle,
+                platform: selectedPlatform,
+                agentId: selectedAgent as Id<"agents">,
+                postCopy: generatedCopy,
+                imageUrl: generatedImage || undefined,
+                runId: currentRunId || undefined,
+                dnaAnchorsUsed: anchorsUsed > 0 ? anchorsUsed : copyAnchorsUsed,
+            });
+
+            // Switch to archive tab and clear state
+            setActiveTab("campaigns");
+            setGeneratedCopy(null);
+            setGeneratedImage(null);
+            setCampaignTitle("");
+            setCurrentRunId(null);
+        } catch (e: any) {
+            console.error("Save failed:", e);
+            alert("Failed to save campaign");
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleToggleStatus = async (id: Id<"campaigns">, currentStatus: string) => {
+        const newStatus = currentStatus === "posted" ? "generated" : "posted";
+        await updateStatus({ campaignId: id, status: newStatus as any });
     };
 
     const handleGenerateImage = async () => {
@@ -561,27 +604,152 @@ export default function SocialStudioPage() {
                                             </p>
                                         )}
                                     </div>
+
+                                    {/* SAVE ACTION */}
+                                    <div className="flex justify-end mt-4">
+                                        <button
+                                            onClick={handleSaveCampaign}
+                                            disabled={isSaving}
+                                            className="px-8 py-4 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-xl font-bold text-white shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/40 hover:scale-105 transition-all flex items-center gap-2"
+                                        >
+                                            {isSaving ? "Saving..." : "💾 Save to Archive"}
+                                        </button>
+                                    </div>
                                 </div>
                             )}
                         </div>
                     </div>
                 )}
 
-                {activeTab === "campaigns" && (
-                    <div className="bg-slate-800/50 rounded-2xl p-8 border border-white/5 text-center">
-                        <h2 className="text-2xl font-bold mb-4">📋 Campaigns Archive</h2>
-                        <p className="text-slate-400 mb-6">
-                            View and manage your scheduled social media campaigns.
-                        </p>
-                        <div className="text-slate-600">
-                            <p>Campaign management coming soon...</p>
-                            <p className="text-sm mt-2">
-                                Create campaigns in the "Create" tab to see them here.
-                            </p>
+                {
+                    activeTab === "campaigns" && (
+                        <div className="space-y-6">
+                            <div className="bg-slate-800/50 rounded-2xl p-6 border border-white/5 flex items-center justify-between">
+                                <h2 className="text-2xl font-bold">📋 Campaign Archive</h2>
+                                <div className="text-sm text-slate-400">
+                                    {campaigns ? `${campaigns.length} Records Found` : "Loading..."}
+                                </div>
+                            </div>
+
+                            {campaigns === undefined ? (
+                                <div className="text-center py-20 text-slate-500">Loading Archive...</div>
+                            ) : campaigns.length === 0 ? (
+                                <div className="text-center py-20 text-slate-500 bg-slate-900/30 rounded-2xl border border-dashed border-slate-800">
+                                    No campaigns archived yet.
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                                    {campaigns.map((campaign: any) => (
+                                        <div key={campaign._id} className="bg-slate-800/40 rounded-2xl border border-white/5 overflow-hidden hover:border-white/10 transition-all group">
+                                            {/* Header */}
+                                            <div className="p-4 border-b border-white/5 flex items-center justify-between bg-black/20">
+                                                <div className="flex items-center gap-2">
+                                                    <div
+                                                        className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
+                                                        style={{ backgroundColor: VOICE_COLORS[campaign.agentVoice] || "#6366f1" }}
+                                                    >
+                                                        {campaign.agentName?.[0]}
+                                                    </div>
+                                                    <div className="flex flex-col">
+                                                        <span className="text-sm font-medium">{campaign.title}</span>
+                                                        <span className="text-xs text-slate-400">{new Date(campaign._creationTime).toLocaleDateString()}</span>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <span
+                                                        className="px-2 py-0.5 rounded text-xs font-bold border"
+                                                        style={{
+                                                            backgroundColor: `${PLATFORM_CONFIG[campaign.platform as Platform]?.color}20`,
+                                                            borderColor: `${PLATFORM_CONFIG[campaign.platform as Platform]?.color}40`,
+                                                            color: PLATFORM_CONFIG[campaign.platform as Platform]?.color === "#000000" ? "#ccc" : PLATFORM_CONFIG[campaign.platform as Platform]?.color
+                                                        }}
+                                                    >
+                                                        {PLATFORM_CONFIG[campaign.platform as Platform]?.icon}
+                                                    </span>
+                                                    <button
+                                                        onClick={() => handleToggleStatus(campaign._id, campaign.status)}
+                                                        className={`px-2 py-0.5 rounded text-xs font-medium transition-colors ${STATUS_BADGES[campaign.status as CampaignStatus]?.color
+                                                            } hover:opacity-80`}
+                                                    >
+                                                        {STATUS_BADGES[campaign.status as CampaignStatus]?.label}
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            {/* Image Content */}
+                                            {campaign.imageUrl && (
+                                                <div className="relative aspect-video bg-black/50 overflow-hidden group-hover:opacity-100 transition-opacity">
+                                                    <img
+                                                        src={getHighResSocialUrl(campaign.imageUrl, campaign.platform)}
+                                                        className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity"
+                                                        alt="Campaign Visual"
+                                                    />
+                                                    {/* Overlay Actions */}
+                                                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                                        <a
+                                                            href={getDownloadUrl(getHighResSocialUrl(campaign.imageUrl, campaign.platform), `LD_Archive_${campaign._id}_4K`)}
+                                                            className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm backdrop-blur-md transition-colors"
+                                                            download
+                                                        >
+                                                            ⬇ 4K Download
+                                                        </a>
+                                                        {campaign.runId && (
+                                                            <a
+                                                                href={`/luminous-deep`}
+                                                                className="px-4 py-2 bg-violet-500/20 hover:bg-violet-500/40 text-violet-200 rounded-lg text-sm backdrop-blur-md border border-violet-500/30 transition-colors"
+                                                            >
+                                                                📡 Telemetry
+                                                            </a>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Copy Content */}
+                                            <div className="p-4">
+                                                <p className="text-sm text-slate-300 whitespace-pre-wrap line-clamp-6 font-mono bg-black/20 p-3 rounded-lg border border-white/5">
+                                                    {campaign.postCopy}
+                                                </p>
+
+                                                <div className="mt-4 flex items-center justify-between">
+                                                    {/* DNA Strength */}
+                                                    <div className="flex items-center gap-1.5 opacity-50 text-xs">
+                                                        <span>🧬</span>
+                                                        <span>DNA Strength: {((campaign.dnaAnchorsUsed || 0) / 14 * 100).toFixed(0)}%</span>
+                                                    </div>
+
+                                                    <div className="flex items-center gap-2">
+                                                        {campaign.status !== "posted" && (
+                                                            <button
+                                                                onClick={async () => {
+                                                                    try {
+                                                                        await resonate({ campaignId: campaign._id });
+                                                                    } catch (e) {
+                                                                        console.error("Resonance failed:", e);
+                                                                    }
+                                                                }}
+                                                                className="text-xs bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/40 px-3 py-1.5 rounded-md border border-indigo-500/30 transition-colors flex items-center gap-1"
+                                                            >
+                                                                📡 Resonate
+                                                            </button>
+                                                        )}
+                                                        <button
+                                                            onClick={() => navigator.clipboard.writeText(campaign.postCopy || "")}
+                                                            className="text-xs text-slate-400 hover:text-white flex items-center gap-1 border border-transparent hover:border-white/10 px-2 py-1 rounded"
+                                                        >
+                                                            📋 Copy Text
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
-                    </div>
-                )}
-            </main>
-        </div>
+                    )
+                }
+            </main >
+        </div >
     );
 }

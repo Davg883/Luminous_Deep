@@ -19,7 +19,10 @@ export const fetchEmbedding = internalAction({
 
         try {
             // Use stable text-embedding-004 model (005 not available via this API)
-            const model = genAI.getGenerativeModel({ model: "text-embedding-004" });
+            // Forced update to ensure deployment: v2
+            const modelName = "text-embedding-004";
+            console.log(`[EMBEDDING] Using model: ${modelName}`);
+            const model = genAI.getGenerativeModel({ model: modelName });
 
             // Embed with simple text input (SDK handles the rest)
             const result = await model.embedContent(args.text);

@@ -31,6 +31,8 @@ interface Agent {
     voice?: Voice;
     isActive: boolean;
     createdAt: number;
+    biography?: string;
+    glimpseUrl?: string;
     homeSpace?: {
         slug: string;
         title: string;
@@ -67,6 +69,33 @@ export default function AgentManagerPage() {
     const [selectedAgent, setSelectedAgent] = useState<Id<"agents"> | null>(null);
     const [isAssigning, setIsAssigning] = useState(false);
 
+    // Tab & Edit State
+    const [activeTab, setActiveTab] = useState<"config" | "dossier">("config");
+    const [dossierDraft, setDossierDraft] = useState("");
+    const [glimpseDraft, setGlimpseDraft] = useState("");
+
+    // Track previous agent to reset drafts
+    const [prevAgentId, setPrevAgentId] = useState<Id<"agents"> | null>(null);
+    const activeAgent = agents?.find((a: Agent) => a._id === selectedAgent);
+
+    if (activeAgent && activeAgent._id !== prevAgentId) {
+        setDossierDraft(activeAgent.biography || "");
+        setGlimpseDraft(activeAgent.glimpseUrl || "");
+        setPrevAgentId(activeAgent._id);
+    }
+
+    const updateAgent = useMutation((api as any).studio?.agents?.updateAgent ?? (() => { }));
+
+    const handleSaveDossier = async () => {
+        if (activeAgent && agentsApiAvailable) {
+            await updateAgent({
+                id: activeAgent._id,
+                biography: dossierDraft,
+                glimpseUrl: glimpseDraft
+            });
+        }
+    };
+
     // Check if agents API is available
     const agentsApiAvailable = !!(api as any).studio?.agents;
 
@@ -84,7 +113,7 @@ export default function AgentManagerPage() {
         setSelectedAgent(null);
     };
 
-    const activeAgent = agents?.find((a: Agent) => a._id === selectedAgent);
+
 
     return (
         <div className="min-h-screen bg-[var(--deep-bg)] text-white font-mono p-0 -m-8 -mt-8">
@@ -154,17 +183,37 @@ export default function AgentManagerPage() {
                     )}
                 </div>
 
+
+
                 {/* Agent Detail Panel */}
                 <div className="w-1/2 p-6">
-                    <div className="flex items-center gap-2 mb-6 text-zinc-400 text-xs uppercase tracking-widest">
-                        <Settings className="w-4 h-4" />
-                        <span>Agent Configuration</span>
+                    <div className="flex items-center gap-6 mb-6 text-xs uppercase tracking-widest border-b border-white/5 pb-4">
+                        <button
+                            onClick={() => setActiveTab("config")}
+                            className={clsx(
+                                "flex items-center gap-2 transition-colors",
+                                activeTab === "config" ? "text-[var(--deep-accent)]" : "text-zinc-500 hover:text-zinc-300"
+                            )}
+                        >
+                            <Settings className="w-4 h-4" />
+                            <span>Configuration</span>
+                        </button>
+                        <button
+                            onClick={() => setActiveTab("dossier")}
+                            className={clsx(
+                                "flex items-center gap-2 transition-colors",
+                                activeTab === "dossier" ? "text-[var(--deep-accent)]" : "text-zinc-500 hover:text-zinc-300"
+                            )}
+                        >
+                            <Terminal className="w-4 h-4" />
+                            <span>Dossier</span>
+                        </button>
                     </div>
 
                     {activeAgent ? (
                         <div className="terminal-panel p-6 space-y-6">
-                            {/* Agent Header */}
-                            <div className="flex items-start justify-between">
+                            {/* Agent Header - Always Visible */}
+                            <div className="flex items-start justify-between border-b border-white/5 pb-4">
                                 <div>
                                     <h2 className={clsx(
                                         "text-2xl font-bold tracking-wide",
@@ -184,104 +233,139 @@ export default function AgentManagerPage() {
                                 </div>
                             </div>
 
-                            {/* Description */}
-                            {activeAgent.description && (
-                                <p className="text-zinc-400 text-sm leading-relaxed border-l-2 border-[var(--deep-accent)]/30 pl-4">
-                                    {activeAgent.description}
-                                </p>
-                            )}
-
-                            {/* Home Space */}
-                            <div className="space-y-2">
-                                <div className="flex items-center gap-2 text-xs text-zinc-500 uppercase tracking-wider">
-                                    <MapPin className="w-3 h-3" />
-                                    Home Space
-                                </div>
-                                <div className="flex items-center justify-between">
-                                    <span className="text-[var(--deep-accent)]">
-                                        {activeAgent.homeSpace?.title || "Unassigned"}
-                                    </span>
-                                    {!isAssigning ? (
-                                        <button
-                                            onClick={() => setIsAssigning(true)}
-                                            className="text-xs text-zinc-500 hover:text-[var(--deep-accent)] transition-colors"
-                                        >
-                                            [reassign]
-                                        </button>
-                                    ) : (
-                                        <select
-                                            className="bg-[var(--deep-dim)] border border-[var(--deep-accent)]/30 rounded px-2 py-1 text-xs text-white"
-                                            onChange={(e) => handleAssignSpace(activeAgent._id, e.target.value as Id<"scenes">)}
-                                            defaultValue=""
-                                        >
-                                            <option value="" disabled>Select space...</option>
-                                            {spaces?.map((space: Space) => (
-                                                <option key={space._id} value={space._id}>
-                                                    {space.title} ({space.domain})
-                                                </option>
-                                            ))}
-                                        </select>
+                            {activeTab === "config" ? (
+                                <>
+                                    {/* Description */}
+                                    {activeAgent.description && (
+                                        <p className="text-zinc-400 text-sm leading-relaxed border-l-2 border-[var(--deep-accent)]/30 pl-4">
+                                            {activeAgent.description}
+                                        </p>
                                     )}
-                                </div>
-                            </div>
 
-                            {/* Autonomy Level */}
-                            <div className="space-y-2">
-                                <div className="flex items-center gap-2 text-xs text-zinc-500 uppercase tracking-wider">
-                                    <Zap className="w-3 h-3" />
-                                    Autonomy Level
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    {[1, 2, 3, 4, 5].map((level) => (
-                                        <div
-                                            key={level}
-                                            className={clsx(
-                                                "w-8 h-2 rounded-full transition-all",
-                                                level <= activeAgent.autonomy
-                                                    ? "bg-[var(--deep-glow)]"
-                                                    : "bg-[var(--deep-dim)]"
+                                    {/* Home Space */}
+                                    <div className="space-y-2">
+                                        <div className="flex items-center gap-2 text-xs text-zinc-500 uppercase tracking-wider">
+                                            <MapPin className="w-3 h-3" />
+                                            Home Space
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-[var(--deep-accent)]">
+                                                {activeAgent.homeSpace?.title || "Unassigned"}
+                                            </span>
+                                            {!isAssigning ? (
+                                                <button
+                                                    onClick={() => setIsAssigning(true)}
+                                                    className="text-xs text-zinc-500 hover:text-[var(--deep-accent)] transition-colors"
+                                                >
+                                                    [reassign]
+                                                </button>
+                                            ) : (
+                                                <select
+                                                    className="bg-[var(--deep-dim)] border border-[var(--deep-accent)]/30 rounded px-2 py-1 text-xs text-white"
+                                                    onChange={(e) => handleAssignSpace(activeAgent._id, e.target.value as Id<"scenes">)}
+                                                    defaultValue=""
+                                                >
+                                                    <option value="" disabled>Select space...</option>
+                                                    {spaces?.map((space: Space) => (
+                                                        <option key={space._id} value={space._id}>
+                                                            {space.title} ({space.domain})
+                                                        </option>
+                                                    ))}
+                                                </select>
                                             )}
+                                        </div>
+                                    </div>
+
+                                    {/* Autonomy Level */}
+                                    <div className="space-y-2">
+                                        <div className="flex items-center gap-2 text-xs text-zinc-500 uppercase tracking-wider">
+                                            <Zap className="w-3 h-3" />
+                                            Autonomy Level
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            {[1, 2, 3, 4, 5].map((level) => (
+                                                <div
+                                                    key={level}
+                                                    className={clsx(
+                                                        "w-8 h-2 rounded-full transition-all",
+                                                        level <= activeAgent.autonomy
+                                                            ? "bg-[var(--deep-glow)]"
+                                                            : "bg-[var(--deep-dim)]"
+                                                    )}
+                                                />
+                                            ))}
+                                            <span className="text-xs text-[var(--deep-glow)] ml-2">
+                                                {autonomyLabels[activeAgent.autonomy - 1]}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* Tools & Capabilities */}
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <div className="text-xs text-zinc-500 uppercase tracking-wider">Capabilities</div>
+                                            <div className="flex flex-wrap gap-2">
+                                                {activeAgent.capabilities.map((cap: string) => (
+                                                    <span key={cap} className="px-2 py-1 bg-[var(--deep-dim)] rounded text-xs text-zinc-300 border border-white/5">
+                                                        {cap}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <div className="text-xs text-zinc-500 uppercase tracking-wider">Tools</div>
+                                            <div className="flex flex-wrap gap-2">
+                                                {activeAgent.tools.map((tool: string) => (
+                                                    <span key={tool} className="px-2 py-1 bg-[var(--deep-accent)]/10 rounded text-xs text-[var(--deep-accent)] border border-[var(--deep-accent)]/20">
+                                                        {tool}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                    {/* Glimpse URL Output */}
+                                    <div className="space-y-2">
+                                        <label className="text-xs text-zinc-500 uppercase tracking-wider flex items-center gap-2">
+                                            <span>👻 Ghost Overlay URL</span>
+                                            <span className="text-zinc-600 normal-case">(Background effect)</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={glimpseDraft}
+                                            onChange={(e) => setGlimpseDraft(e.target.value)}
+                                            placeholder="https://..."
+                                            className="w-full bg-black/20 border border-white/10 rounded px-3 py-2 text-sm text-zinc-300 focus:border-[var(--deep-accent)] focus:outline-none transition-colors"
                                         />
-                                    ))}
-                                    <span className="text-xs text-[var(--deep-glow)] ml-2">
-                                        {autonomyLabels[activeAgent.autonomy - 1]}
-                                    </span>
-                                </div>
-                            </div>
+                                    </div>
 
-                            {/* Capabilities */}
-                            <div className="space-y-2">
-                                <div className="text-xs text-zinc-500 uppercase tracking-wider">
-                                    Capabilities
-                                </div>
-                                <div className="flex flex-wrap gap-2">
-                                    {activeAgent.capabilities.map((cap: string) => (
-                                        <span
-                                            key={cap}
-                                            className="px-2 py-1 bg-[var(--deep-dim)] rounded text-xs text-zinc-300 border border-white/5"
-                                        >
-                                            {cap}
-                                        </span>
-                                    ))}
-                                </div>
-                            </div>
+                                    {/* Biography Editor */}
+                                    <div className="space-y-2 h-[400px] flex flex-col">
+                                        <label className="text-xs text-zinc-500 uppercase tracking-wider flex items-center justify-between">
+                                            <span>Start Logic / Biography</span>
+                                            <span className="text-zinc-600">{dossierDraft.length} chars</span>
+                                        </label>
+                                        <textarea
+                                            value={dossierDraft}
+                                            onChange={(e) => setDossierDraft(e.target.value)}
+                                            placeholder="Enter deep backstory, defining memories, and psychological profile here..."
+                                            className="flex-1 bg-black/20 border border-white/10 rounded p-4 text-sm text-zinc-300 font-mono leading-relaxed focus:border-[var(--deep-accent)] focus:outline-none transition-colors resize-none"
+                                        />
+                                    </div>
 
-                            {/* Tools */}
-                            <div className="space-y-2">
-                                <div className="text-xs text-zinc-500 uppercase tracking-wider">
-                                    Available Tools
-                                </div>
-                                <div className="flex flex-wrap gap-2">
-                                    {activeAgent.tools.map((tool: string) => (
-                                        <span
-                                            key={tool}
-                                            className="px-2 py-1 bg-[var(--deep-accent)]/10 rounded text-xs text-[var(--deep-accent)] border border-[var(--deep-accent)]/20"
+                                    {/* Action Bar */}
+                                    <div className="flex justify-end pt-4 border-t border-white/5">
+                                        <button
+                                            onClick={handleSaveDossier}
+                                            className="px-4 py-2 bg-[var(--deep-accent)] hover:bg-[var(--deep-accent)]/80 text-black font-bold rounded text-xs uppercase tracking-wider transition-colors"
                                         >
-                                            {tool}
-                                        </span>
-                                    ))}
+                                            Save Dossier Protocol
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
+                            )}
                         </div>
                     ) : (
                         <div className="terminal-panel p-12 text-center text-zinc-500">

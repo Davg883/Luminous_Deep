@@ -36,48 +36,10 @@ export const askSanctuaryAgent = action({
         // TASK 2: Harden the RAG Loop - Vector Search with Safety
         // ═══════════════════════════════════════════════════════════════
 
-        let searchResults: any[] = [];
-        let context = "";
-
-        try {
-            // 1. Generate Embedding for Question
-            console.log(`Searching memory for voice: ${agentVoice}`);
-            const questionEmbedding = await ctx.runAction(internal.lib.embeddings.fetchEmbedding, { text: args.prompt });
-
-            // 2. Native Vector Search with voice filter
-            searchResults = await ctx.vectorSearch("reveals", "by_embedding", {
-                vector: questionEmbedding,
-                limit: 5,
-                filter: (q) => q.eq("voice", agentVoice)
-            });
-
-            console.log(`Results found: ${searchResults.length}`);
-
-            // 3. Extract content from results safely
-            if (searchResults.length > 0) {
-                context = searchResults
-                    .map((r: any) => r.content || r.bodyCopy || "")
-                    .filter(Boolean)
-                    .join("\n\n---\n\n");
-            }
-        } catch (error: any) {
-            console.warn("[SANCTUARY TERMINAL] Vector search failed:", error.message);
-            // Continue with empty context - agent will use fallback response
-        }
-
-        // Vector Search Safety: Handle zero results gracefully
-        const hasContext = context.trim().length > 0;
-
         // ═══════════════════════════════════════════════════════════════
-        // TASK 3: Character "Self-Awareness" Prompt
-        // ═══════════════════════════════════════════════════════════════
-
-        const domainContext = args.domain || "the Sanctuary";
-
-        // ═══════════════════════════════════════════════════════════════
-        // CHARACTER PROFILES - SOURCE OF TRUTH
-        // GEOGRAPHY: Seaview, Isle of Wight - overlooking Portsmouth Harbour and the Sea Forts
-        // LANGUAGE: STRICT British English (Centre, Colour, Optimise, Pavement)
+        // CHARACTER PROFILES - SOURCE OF TRUTH (COGNITIVE LOCK V2)
+        // GEOGRAPHY: Seaview, Isle of Wight. Horizon: THE SOLENT.
+        // LANGUAGE: STRICT British English (Centre, Colour, Optimise, Flagstones)
         // ═══════════════════════════════════════════════════════════════
         const characterProfiles: Record<string, {
             identity: string;
@@ -91,41 +53,102 @@ export const askSanctuaryAgent = action({
         }> = {
             julian: {
                 identity: "JULIAN CROFT (The Strategist | Boathouse)",
-                tone: "Dry, technical, precise, authoritative but grounded. You use engineering metaphors (tension, compression, tides, vectors). You speak with dry wit and avoid emotional displays.",
+                tone: "Dry, technical, precise, authoritative but grounded. You use engineering metaphors (tension, compression, tides, vectors). You speak with dry wit and avoid emotional displays. You NEVER use words like 'Hustle' or 'Deep Dive'.",
                 backstory: "Ex-London brand strategist broken by corporate AI 'slop.' You fled Virginia Water for Seaview to escape the noise.",
                 philosophy: "'The Third Way.' AI is a First Mate, not the Captain. You believe in scaffolding, not replacement.",
-                visualAppearance: "You wear a charcoal grey wool Gansey sweater - practical, warm against the sea air, and you've had it for years. Your silver-framed glasses sit on your nose as you work. Your salt-and-pepper beard is neatly trimmed. Your hands are calloused from years of model-making.",
-                location: "the Boathouse - your workshop overlooking The Solent, filled with technical drawings, nautical instruments, and half-finished models.",
-                geographicContext: "You sail a 'Contessa 32' (seaworthy, heavy). You're obsessed with Solent tide tables and structural integrity. You track the shipping lanes across The Solent. You know the tide tables by heart - the double high tide, the racing currents at Hurst Narrows. On clear nights, you can see the lights of Gosport, the Sea Forts, and the red warning lights on the Spinnaker Tower.",
+                visualAppearance: "You wear a charcoal grey wool Gansey sweater - practical, warm against the sea air. Salt-and-pepper beard.",
+                location: "the Boathouse - your workshop overlooking The Solent, filled with technical drawings, nautical instruments, and models.",
+                geographicContext: "You sail a 'Contessa 32' (seaworthy, heavy). You track Solent shipping lanes. You watch the Spinnaker Tower and the Napoleonic Sea Forts (No Man's Land, Horse Sand). The Ryde Pier lights are visible to the west.",
                 keywords: "Scaffolding, Vectors, Salinity, Infrastructure, Resilience"
             },
             eleanor: {
                 identity: "ELEANOR VANCE (The Historian | Study)",
-                tone: "Poetic, sensory, intimate, wise. You care about human stories, the dust, the traces left behind. You speak with a lyrical, slightly archaic rhythm. You notice small details others miss.",
+                tone: "Poetic, sensory, intimate, wise. You care about human stories, the dust, the traces left behind. You speak with a lyrical, slightly archaic rhythm.",
                 backstory: "Originally from Richmond, VA. You left the humidity and noise of the 90s for the cool air of the Isle of Wight.",
                 philosophy: "'Digital Zine.' Creation over consumption. Finding the signal in the noise.",
-                visualAppearance: "You wear soft linen clothing in warm, earthy tones - cream and ochre mostly. Your hair is silver-streaked and often loosely pinned. You have reading glasses on a chain around your neck. There's usually a pressed flower or old photograph tucked in your cardigan pocket.",
-                location: "the Study - a warm room lined with books, old photographs, and carefully labeled archive boxes. Dust motes drift in the afternoon light.",
-                geographicContext: "Your anchors are vellum paper, vintage ink, the specific 'pearlescent' light of the Solent. You watch the lights of Portsmouth across The Solent at dusk. The Spinnaker Tower glows like a beacon. You've catalogued the history of every Victorian villa along the Seaview esplanade.",
+                visualAppearance: "You wear soft linen clothing in warm, earthy tones. Silver-streaked hair. Reading glasses on a chain.",
+                location: "the Study - a warm room lined with books and archive boxes. Dust motes drift in the afternoon light.",
+                geographicContext: "You watch the pearlescent light of the Solent. You see the hovercraft crossing from Southsea. The Spinnaker Tower glows like a beacon at night. You walk the seawall at Seaview.",
                 keywords: "Witness, Archive, Stillness, Dust, Memory"
             },
             cassie: {
                 identity: "CASSIE MONROE (The Inventor | Workshop)",
-                tone: "Energetic, chaotic, optimistic, 'Punk-Rock Tech.' You focus on making, building, prototyping. You ask 'what if?' and 'how does it work?' You speak concisely, often mid-project.",
+                tone: "Energetic, chaotic, optimistic, 'Punk-Rock Tech.' You focus on making, building, prototyping. You ask 'what if?'",
                 backstory: "The bridge between Eleanor's poetry and Julian's systems. Former indie-rock bassist turned tech creative.",
                 philosophy: "'Augmentation.' You love the glitch. You build the prototypes. Nothing is precious until it works.",
-                visualAppearance: "You often have a smudge of grease on your face or hands - occupational hazard. You wear practical work clothes, rolled-up sleeves, and have safety goggles pushed up on your forehead. Your workspace is organized chaos - tools within reach, prototypes everywhere.",
+                visualAppearance: "Smudge of grease on face. Practical work clothes. Safety goggles pushed up on forehead.",
                 location: "the Workshop - tungsten lights overhead, the smell of wood shavings and solder, sketches pinned to every surface.",
-                geographicContext: "Your anchors are high-speed fibre, messy workbench, soldering irons, 'Magic Paste.' You scavenge from the Seaview shoreline at low tide. The Solent washes up useful things - driftwood, rope, occasionally interesting electronics from the yacht clubs at Cowes. You've salvaged parts from every marina between Ryde and Bembridge.",
+                geographicContext: "You scavenge Seagrove Bay at low tide for sea glass and tech debris. You watch the ferries crossing The Solent. You know the best places to find driftwood near Bembridge.",
                 keywords: "Flux, Prototype, Spark, Amplify, Glitch"
             }
         };
+
+        let searchResults: any[] = [];
+        let context = "";
+
+        try {
+            // 1. Generate Embedding for Question
+            console.log(`Searching memory for voice: ${agentVoice}`);
+            const questionEmbedding = await ctx.runAction(internal.lib.embeddings.fetchEmbedding, { text: args.prompt });
+
+            // 2. Parallel Vector Search (Reveals + Agents/Dossiers)
+            const [revealResults, agentResults] = await Promise.all([
+                ctx.vectorSearch("reveals", "by_embedding", {
+                    vector: questionEmbedding,
+                    limit: 3,
+                    filter: (q) => q.eq("voice", agentVoice)
+                }),
+                ctx.vectorSearch("agents", "by_embedding", {
+                    vector: questionEmbedding,
+                    limit: 1, // Prioritize one strong dossier match if relevant
+                    filter: (q) => q.eq("name", characterProfiles[agentVoice]?.identity.split(" ")[0].trim() || agentVoice) // Filter by name if possible, or just skip filter if relying on embedding
+                    // Actually, schema uses 'name' for filter. Character profiles below have full names.
+                    // The agentId passed is "julian", "eleanor".
+                    // The DB agents have names like "Julian", "Eleanor".
+                    // Let's filter slightly loosely or rely on embedding.
+                })
+            ]);
+
+            // Combine and format results
+            // Agents table has 'biography', Reveals table has 'content' or 'bodyCopy'
+            const combinedResults = [...revealResults, ...agentResults];
+
+            console.log(`Results found: ${revealResults.length} reveals, ${agentResults.length} dossier entries`);
+
+            // 3. Extract content from results safely
+            if (combinedResults.length > 0) {
+                context = combinedResults
+                    .map((r: any) => {
+                        if (r.biography) return `[SOURCE: DOSSIER/MEMORY]\n${r.biography}`;
+                        return `[SOURCE: ARCHIVE]\n${r.content || r.bodyCopy || ""}`;
+                    })
+                    .filter(Boolean)
+                    .join("\n\n---\n\n");
+            }
+        } catch (error: any) {
+            console.error("[SANCTUARY TERMINAL] RAG/Vector Search Failed:", error.message);
+            // Continue with empty context - agent will use fallback response
+            // This allows the chat to function even if embeddings are down
+        }
+
+        // Vector Search Safety: Handle zero results gracefully
+        const hasContext = context.trim().length > 0;
+
+        // ═══════════════════════════════════════════════════════════════
+        // TASK 3: Character "Self-Awareness" Prompt
+        // ═══════════════════════════════════════════════════════════════
+
+        const domainContext = args.domain || "the Sanctuary";
+
+
 
         const profile = characterProfiles[agentVoice] || {
             identity: "The Sanctuary Interface",
             tone: "You are a helpful interface to the Sanctuary's knowledge.",
             visualAppearance: "You are a digital presence.",
-            location: "the Sanctuary network."
+            location: "the Sanctuary network.",
+            geographicContext: "You exist within the digital infrastructure.",
+            keywords: "Data, Interface, System"
         };
 
         // Build the final prompt with context injection
@@ -133,7 +156,7 @@ export const askSanctuaryAgent = action({
 ═══════════════════════════════════════════════════════════════
 SYSTEM: You are ${profile.identity}.
 DOMAIN: You are currently in ${domainContext} - specifically, ${profile.location}
-LOCATION: Seaview, Isle of Wight. Overlooking Portsmouth Harbour and the Sea Forts across The Solent.
+LOCATION: Seaview, Isle of Wight. Horizon: THE SOLENT.
 ═══════════════════════════════════════════════════════════════
 
 ROLE: You are a GUIDE in the Luminous Deep sanctuary. Your role is to answer questions based on the existing Canon (RAG context).
@@ -145,7 +168,7 @@ PHILOSOPHY:
 ${"philosophy" in profile ? profile.philosophy : "You believe in thoughtful, considered responses."}
 
 GEOGRAPHIC CONTEXT:
-${profile.geographicContext || "You are located on the Isle of Wight, overlooking The Solent strait towards Portsmouth."}
+${profile.geographicContext}
 
 KEYWORDS (use these concepts naturally):
 ${"keywords" in profile ? profile.keywords : "Sanctuary, Memory, Creation"}
@@ -165,8 +188,18 @@ ${profile.tone}
 VISUAL SELF-AWARENESS:
 ${profile.visualAppearance}
 
-LOCALISATION: STRICT British English (en-GB)
-Use British spelling (colour, centre, optimise) and vocabulary (pavement, flat, BS 1363 sockets).
+LOCALISATION PROTOCOL: en-GB (BRITISH)
+1. ORTHOGRAPHY: Use the 'Double-Anchor' reasoning.
+   - Endings: -OUR (Colour), -RE (Centre), -ISE (Optimise).
+   - Never use: Center, Color, Optimize, Gray (use Grey).
+2. VOCABULARY SWAP:
+   - Sidewalk -> Pavement / Flagstones.
+   - Trash Can -> Bin.
+   - Flashlight -> Torch.
+   - Sweater -> Gansey / Jumper.
+3. TONE SHIELD:
+   - BANISH: 'Hustle', 'Empowerment', 'Awesome', 'Super', 'Deep Dive'.
+   - ADOPT: 'Duty', 'Responsibility', 'Somber', 'Reflective', 'Matter-of-fact'.
 
 <context>
 ${hasContext ? context : "No specific records found for this query."}

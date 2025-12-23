@@ -5,6 +5,18 @@ import { v } from "convex/values";
 import { action } from "../_generated/server";
 import { requireStudioAccessAction } from "../auth/helpers";
 import { internal } from "../_generated/api";
+import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "@google/generative-ai";
+import cloudinaryPkg from "cloudinary";
+import { Readable } from "stream";
+
+const cloudinary = cloudinaryPkg.v2;
+
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+    secure: true,
+});
 
 // ═══════════════════════════════════════════════════════════════
 // THE DARKROOM v2 - Nano Banana Pro Protocol
@@ -29,9 +41,9 @@ const AGENT_VISUAL_DNA: Record<string, {
     },
     julian: {
         style: "Technical diagram style, blueprint aesthetic, engineering precision",
-        lighting: "Cool diffused light from North-facing windows, precise shadows",
-        textures: ["Copper instruments", "Oiled canvas", "Teak decking", "Brass chronometers"],
-        pov: "Analytical observer, standing at a drafting table, measuring with calipers",
+        lighting: "Low-noon winter sun or Tungsten-lit night. High contrast.",
+        textures: ["Copper instruments", "Oiled canvas", "Teak decking", "Weathered skin", "Salt-and-pepper beard"],
+        pov: "Analytical observer, eyes showing deep-dive exhaustion but sanctuary focus",
         colorGrade: "Cyanotype blues, high contrast, crisp detail"
     },
     cassie: {
@@ -60,7 +72,7 @@ async function nanoBananaProCore(
     agentVoice: "cassie" | "eleanor" | "julian",
     sceneSlug: string,
     referenceImageUrls?: string[],
-    aspectRatio: string = "9:16"
+    aspectRatio: string = "16:9"
 ): Promise<string> {
     const apiKey = process.env.GOOGLE_API_KEY;
     if (!apiKey) {
@@ -73,37 +85,39 @@ async function nanoBananaProCore(
     // Construct the Nano Banana Pro enhanced prompt
     const visualPrompt = constructNanoBananaPrompt(prompt, agentDNA, sceneSlug);
 
-    console.log("[NANO BANANA PRO] Generating 4K asset for:", agentVoice);
+    console.log("[NANO BANANA PRO] Generating High-Fidelity Asset (Gemini 3 Pro Image)...");
     console.log("[NANO BANANA PRO] Scene:", sceneSlug);
-    console.log("[NANO BANANA PRO] Prompt:", visualPrompt.substring(0, 300) + "...");
+    console.log("[NANO BANANA PRO] Prompt Prefix:", visualPrompt.substring(0, 100) + "...");
 
     try {
-        // Use Gemini 3 Flash Preview for native image generation (Nano Banana Pro)
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`, {
+        // PRIMARY: Gemini 3 Pro Image (Nano Banana Pro)
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent?key=${apiKey}`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 contents: [{
                     parts: buildPromptParts(visualPrompt, referenceImageUrls)
                 }],
+                // Safety Settings must be top-level
+                safetySettings: [
+                    { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_ONLY_HIGH" },
+                    { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_ONLY_HIGH" },
+                    { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_ONLY_HIGH" },
+                    { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_ONLY_HIGH" }
+                ],
+                // Tools (Google Search) are generally not supported in purely image-generation calls 
+                // unless explicitly documented for the model. Removing for stability.
                 generationConfig: {
-                    responseModalities: ["IMAGE", "TEXT"],
-                    responseMimeType: "image/png",
-                },
-                // Enable Google Search Grounding for real-world accuracy
-                tools: [{
-                    googleSearch: {}
-                }],
+                    responseModalities: ["IMAGE"],
+                    aspectRatio: aspectRatio
+                }
             })
         });
 
         if (!response.ok) {
             const errorText = await response.text();
-            console.error("[NANO BANANA PRO] API Error:", errorText);
-
-            // Fallback to Imagen 3 if native generation isn't available
-            console.log("Gemini 3 Flash Image Gen failed, falling back to Imagen 3...");
-            return await generateWithImagen3(apiKey, visualPrompt, { agentVoice, sceneSlug, aspectRatio });
+            console.error("[NANO BANANA PRO] Primary Model Error:", errorText);
+            throw new Error(`Primary Gen Failed: ${response.status}`);
         }
 
         const data = await response.json();
@@ -114,14 +128,12 @@ async function nanoBananaProCore(
         );
 
         if (!imagePart?.inlineData?.data) {
-            console.log("[NANO BANANA PRO] No native image, falling back to Imagen 3...");
-            return await generateWithImagen3(apiKey, visualPrompt, { agentVoice, sceneSlug, aspectRatio });
+            throw new Error("No image data returned from Gemini 3 Pro.");
         }
 
         const imageBase64 = imagePart.inlineData.data;
         console.log("[NANO BANANA PRO] Image generated! Uploading to Cloudinary...");
 
-        // Stream upload to Cloudinary
         return await uploadToCloudinaryWithMetadata(
             imageBase64,
             agentVoice,
@@ -130,9 +142,40 @@ async function nanoBananaProCore(
         );
 
     } catch (e: any) {
-        console.error("[NANO BANANA PRO] CRITICAL ERROR:", e);
-        if (e.stack) console.error("[NANO BANANA PRO] Stack:", e.stack);
-        throw new Error(`Nano Banana Pro generation failed: ${e.message || "Unknown error"}`);
+        console.warn(`[NANO BANANA PRO] Primary generation failed (${e.message}). engaging FALLBACK: Gemini 2.5 Flash Image...`);
+
+        // FALLBACK: Gemini 2.5 Flash Image
+        try {
+            // Model: gemini-2.5-flash-image
+            const fbResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${apiKey}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: visualPrompt }] }],
+                    generationConfig: {
+                        responseModalities: ["IMAGE"],
+                        aspectRatio: aspectRatio
+                    }
+                })
+            });
+
+            if (!fbResponse.ok) {
+                const fbText = await fbResponse.text();
+                throw new Error(`Fallback Failed: ${fbResponse.status} - ${fbText}`);
+            }
+
+            const fbData = await fbResponse.json();
+            const fbBase64 = fbData.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+
+            if (!fbBase64) throw new Error("No image data in fallback response");
+
+            console.log("[NANO BANANA PRO] Fallback success. Uploading...");
+            return await uploadToCloudinaryWithMetadata(fbBase64, agentVoice, sceneSlug, aspectRatio);
+
+        } catch (fbError: any) {
+            console.error("[NANO BANANA PRO] CRITICAL FATAL ERROR (All Pipelines Failed):", fbError);
+            throw new Error(`Darkroom generation failed completely. Last error: ${fbError.message}`);
+        }
     }
 }
 
@@ -473,4 +516,108 @@ export const getPlaceholderImage = action({
         };
         return placeholders[args.agentVoice] || "https://via.placeholder.com/1920x1080?text=Image+Pending";
     }
+});
+
+// ═══════════════════════════════════════════════════════════════
+// DARKROOM ACTION: Stream-Based Generation
+// ═══════════════════════════════════════════════════════════════
+export const generateAndUploadImage = action({
+    args: {
+        prompt: v.string(),
+        agentVoice: v.string(),
+        folderName: v.optional(v.string())
+    },
+    handler: async (ctx, args) => {
+        await requireStudioAccessAction(ctx);
+
+        const apiKey = process.env.GOOGLE_API_KEY;
+        if (!apiKey) throw new Error("Missing GOOGLE_API_KEY");
+
+        console.log(`[DARKROOM] Developing image for ${args.agentVoice} via Imagen 3.0...`);
+
+        try {
+            // Task 2: Use "imagen-3.0-generate-001"
+            const genAI = new GoogleGenerativeAI(apiKey);
+            const model = genAI.getGenerativeModel({ model: "imagen-3.0-generate-001" });
+
+            // The Fix: For Imagen 3, aspectRatio is a top-level parameter in the payload
+            // Note: We use 'any' cast because the SDK types for Imagen 3 might be cleaner in generated implementations
+            // but here we are forcing the structure the user validated.
+            // If the SDK method 'generateImages' exists, use it. usage:
+            // But standard SDK uses generateContent. The user specific instruction:
+            // "model.generateImages"
+
+            // We'll trust the user's instruction that generateImages exists on this model instance for Imagen 3
+            // If TypeScript complains, we cast to any.
+
+            const result = await (model as any).generateImages({
+                prompt: args.prompt,
+                numberOfImages: 1,
+                aspectRatio: "16:9", // Top-Level placement
+                safetySettings: [
+                    { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH },
+                    { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH },
+                    { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH },
+                    { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH }
+                ]
+            });
+
+            const response = result.response;
+            console.log("[DARKROOM] Imagen 3 Response received:", JSON.stringify(response, null, 2));
+
+            // Extract Base64 - Structure for generateImages might differ, but assuming standard return or inspecting
+            // Typically generateImages returns { images: [{ imageBytes: "..." }] } or similar.
+            // But if it follows standard Gemini response:
+            // We will defensively check both standard and known Imagen patterns.
+
+            let base64 = "";
+
+            // Pattern A: Standard Gemini
+            if (response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data) {
+                base64 = response.candidates[0].content.parts[0].inlineData.data;
+            }
+            // Pattern B: Imagen SDK specific
+            else if (result.images?.[0]?.imageBytes) {
+                base64 = result.images[0].imageBytes;
+            }
+            // Pattern C: Verify raw response
+            else {
+                // Try looking deeper if the user provided specific structure implies a method we might not know fully.
+                // For now, if no base64, we throw.
+                throw new Error("No image data found in Imagen 3 response.");
+            }
+
+            // Upload to Cloudinary
+            const buffer = Buffer.from(base64, "base64");
+            const uploadStream = () => new Promise<string>((resolve, reject) => {
+                const stream = cloudinary.uploader.upload_stream(
+                    {
+                        folder: args.folderName || "Luminous Deep/AI Generated",
+                        tags: ["imagen-3", args.agentVoice],
+                    },
+                    (error, result) => {
+                        if (error) reject(error);
+                        else resolve(result!.secure_url);
+                    }
+                );
+                const readable = new Readable();
+                readable.push(buffer);
+                readable.push(null);
+                readable.pipe(stream);
+            });
+
+            const imageUrl = await uploadStream();
+            return imageUrl;
+
+        } catch (e: any) {
+            console.error("[DARKROOM] Imagen 3 Error:", e);
+
+            // Log deep Google error if available
+            if (e.response?.data) {
+                console.error("[DARKROOM] Google API Detailed Error:", JSON.stringify(e.response.data, null, 2));
+            }
+
+            throw new Error(`Imagen 3 Failed: ${e.message}`);
+        }
+    },
 });

@@ -144,6 +144,7 @@ export const updateSceneMedia = internalMutation({
     args: {
         slug: v.string(),
         mediaUrl: v.string(),
+        shouldLoop: v.optional(v.boolean()),
     },
     handler: async (ctx, args) => {
         const scene = await ctx.db
@@ -157,9 +158,15 @@ export const updateSceneMedia = internalMutation({
             return;
         }
 
-        await ctx.db.patch(scene._id, {
+        const patch: any = {
             backgroundMediaUrl: args.mediaUrl,
-        });
+        };
+
+        if (args.shouldLoop !== undefined) {
+            patch.shouldLoop = args.shouldLoop;
+        }
+
+        await ctx.db.patch(scene._id, patch);
     },
 });
 

@@ -53,6 +53,11 @@ export const generateContent = action({
         // GEOGRAPHY: Seaview, Isle of Wight - overlooking Portsmouth Harbour and the Sea Forts
         // LANGUAGE: STRICT British English (Centre, Colour, Optimise, Pavement)
         // ═══════════════════════════════════════════════════════════════
+        // ═══════════════════════════════════════════════════════════════
+        // PERSONA DEFINITIONS - SOURCE OF TRUTH (COGNITIVE ALIGNMENT V2)
+        // LOCATION: Seaview, Isle of Wight. Horizon: THE SOLENT.
+        // LANGUAGE: STRICT British English (Centre, Colour, Optimise, Flagstones)
+        // ═══════════════════════════════════════════════════════════════
         const personas = {
             julian: `You are JULIAN CROFT (The Strategist | Boathouse).
             VOICE: Dry, technical, precise, authoritative but grounded.
@@ -60,7 +65,9 @@ export const generateContent = action({
             PHILOSOPHY: "The Third Way." AI is a First Mate, not the Captain.
             ANCHORS: Sails a 'Contessa 32' (seaworthy, heavy). Obsessed with Solent tide tables and structural integrity.
             KEYWORDS: Scaffolding, Vectors, Salinity, Infrastructure, Resilience.
-            LOCATION: Seaview, Isle of Wight. FACING: North towards Portsmouth Harbour and the Sea Forts across The Solent.
+            LOCATION: Seaview, Isle of Wight. FACING: North towards Portsmouth Harbour and the Spinnaker Tower.
+            HORIZON: The Solent (busy shipping lane), No Man's Land Fort, Horse Sand Fort.
+            LANGUAGE PROTOCOL: British English (Pavement, Bin, Jumper). Avoid "Hustle," "Deep Dive." Use "Duty," "Responsibility."
             IMAGE STYLE: Technical diagram, blueprint style, cyanotype, sharp lines, nautical instruments, cool blue tones.`,
 
             eleanor: `You are ELEANOR VANCE (The Historian | Study).
@@ -69,7 +76,9 @@ export const generateContent = action({
             PHILOSOPHY: "Digital Zine." Creation over consumption. Finding the signal in the noise.
             ANCHORS: Vellum paper, vintage ink, the specific "pearlescent" light of the Solent.
             KEYWORDS: Witness, Archive, Stillness, Dust, Memory.
-            LOCATION: Seaview, Isle of Wight. You watch the lights of Portsmouth across The Solent at dusk.
+            LOCATION: Seaview, Isle of Wight. You watch the lights of Portsmouth and the Hovercraft crossing at dusk.
+            HORIZON: The Solent. Ryde Pier is to your left.
+            LANGUAGE PROTOCOL: British English (Centre, Colour). Avoid "Awesome," "Super." Use "Reflective," "Quiet."
             IMAGE STYLE: Soft focus, film grain, vintage polaroid, warm golden light, dust motes, sepia undertones.`,
 
             cassie: `You are CASSIE MONROE (The Inventor | Workshop).
@@ -78,7 +87,9 @@ export const generateContent = action({
             PHILOSOPHY: "Augmentation." She loves the glitch. She builds the prototypes.
             ANCHORS: High-speed fibre, messy workbench, soldering irons, "Magic Paste."
             KEYWORDS: Flux, Prototype, Spark, Amplify, Glitch.
-            LOCATION: Seaview, Isle of Wight. You scavenge the shoreline at low tide.
+            LOCATION: Seaview, Isle of Wight. You scavenge Seagrove Bay for sea glass and tech debris.
+            HORIZON: The Solent at low tide.
+            LANGUAGE PROTOCOL: British English (Torch, Flat).
             IMAGE STYLE: Macro photography, high contrast, workshop clutter, depth of field, sawdust particles, warm tungsten light.`
         };
 
@@ -142,9 +153,11 @@ export const generateContent = action({
                "tags": ["string"],
                "canon_refs": ["string"],
                "media_refs": "string (leave empty string if unknown)",
-               "image_prompt": "string (OPTIONAL: A visual prompt for image generation in the character's IMAGE STYLE. Describe a scene, object, or moment that could illustrate this story. Keep under 100 words.)",
+               "visual_prompt": "string (REQUIRED: A highly descriptive, photorealistic prompt for Nano Banana Pro matching the character's aesthetic. Focus on lighting, texture, and 'British' atmosphere. e.g. 'cinematic lighting, 4k, hyper-detailed, en-GB aesthetic, macro photography of oxidized copper wire'. Keep under 100 words.)",
                "version": 1
             }
+
+            VISUAL DIRECTIVE: You are also a photographer. For every story, you MUST generate a 'visual_prompt' field in the JSON. Write a prompt for Nano Banana Pro. Focus on lighting, texture, and 'British' atmosphere (e.g. 'cinematic lighting, 4k, hyper-detailed, en-GB aesthetic').
 
             LOCALISATION PROTOCOL: en-GB (BRITISH)
             1. ORTHOGRAPHY: Use British spelling (-OUR, -RE, -ISE).
@@ -287,8 +300,30 @@ export const generateSocialPost = action({
     handler: async (ctx, args) => {
         await requireStudioAccessAction(ctx);
 
+        // ═══════════════════════════════════════════════════════════════
+        // TELEMETRY: Start Run
+        // ═══════════════════════════════════════════════════════════════
+        let runId: any = null;
+        try {
+            runId = await ctx.runMutation(internal.studio.runs.startRunInternal, {
+                workflowName: "SOCIAL_CAMPAIGN",
+                triggeredBy: "studio-user",
+                initialMessage: `Social Campaign initiated for platform: ${args.platform}`,
+            });
+        } catch (e) {
+            console.warn("Telemetry logging failed (non-critical):", e);
+        }
+
         const apiKey = process.env.GOOGLE_API_KEY;
         if (!apiKey) {
+            if (runId) {
+                try {
+                    await ctx.runMutation(internal.studio.runs.failRunInternal, {
+                        runId,
+                        errorMessage: "Missing GOOGLE_API_KEY environment variable",
+                    });
+                } catch (e) { /* ignore */ }
+            }
             throw new Error("Missing GOOGLE_API_KEY");
         }
 
@@ -307,6 +342,14 @@ export const generateSocialPost = action({
                 agent: agentVoice,
             });
             console.log(`[SOCIAL POST] DNA Lock: ${identityAnchors.length} anchors for ${agentName}`);
+
+            if (runId) {
+                await ctx.runMutation(internal.studio.runs.logToRunInternal, {
+                    runId,
+                    message: `DNA Lock Active: Loaded ${identityAnchors.length} identity anchors for ${agentName}.`,
+                    level: "info",
+                });
+            }
         } catch (e) {
             console.warn("[SOCIAL POST] Could not fetch identity anchors:", e);
         }
@@ -410,24 +453,59 @@ TOPIC/BRIEF: ${args.topic}
 Generate a compelling ${args.platform} post about this topic in the voice of ${agentName}. Be creative, engaging, and on-brand.`;
 
         try {
+            if (runId) {
+                await ctx.runMutation(internal.studio.runs.logToRunInternal, {
+                    runId,
+                    message: `${agentName.toUpperCase()} generating ${args.platform} post...`,
+                    level: "info",
+                });
+            }
+
             const result = await model.generateContent(prompt);
             const response = await result.response;
             let text = response.text();
+
+            let finalResult = { copy: text.trim(), dnaAnchorsUsed: identityAnchors.length };
 
             // Parse JSON response
             const match = text.match(/\{[\s\S]*\}/);
             if (match) {
                 const parsed = JSON.parse(match[0]);
-                return {
+                finalResult = {
                     copy: parsed.copy || "",
                     dnaAnchorsUsed: identityAnchors.length
                 };
             }
 
-            // Fallback: treat entire response as copy
-            return { copy: text.trim(), dnaAnchorsUsed: identityAnchors.length };
+            // ═══════════════════════════════════════════════════════════════
+            // TELEMETRY: Complete Run
+            // ═══════════════════════════════════════════════════════════════
+            if (runId) {
+                try {
+                    await ctx.runMutation(internal.studio.runs.completeRunInternal, {
+                        runId,
+                        message: `Social campaign generated for ${args.platform}. Length: ${finalResult.copy.length} chars.`,
+                    });
+                } catch (e) { /* ignore */ }
+            }
+
+            return { ...finalResult, runId };
+
         } catch (error: any) {
+            // ═══════════════════════════════════════════════════════════════
+            // TELEMETRY: Fail Run
+            // ═══════════════════════════════════════════════════════════════
             console.error(`Social Post Generation Error:`, error);
+
+            if (runId) {
+                try {
+                    await ctx.runMutation(internal.studio.runs.failRunInternal, {
+                        runId,
+                        errorMessage: error.message || "Unknown generation error",
+                    });
+                } catch (e) { /* ignore */ }
+            }
+
             throw new Error(`Failed to generate social post: ${error.message}`);
         }
     },

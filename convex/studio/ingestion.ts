@@ -34,7 +34,7 @@ async function analyzeIngestIntentCore(imageBase64: string, mimeType?: string): 
     console.log("[SMART INGEST] Analyzing asset with Gemini Vision...");
 
     const analysisPrompt = `
-You are the "Luminous Deep Digital Registrar." Your task is to analyze incoming visual assets for character archival.
+You are the "Luminous Deep Digital Registrar." Your task is to analyze incoming visual assets (Images or Video Loops) for character archival.
 
 CHARACTERS IN THE LUMINOUS DEEP UNIVERSE:
 - JULIAN: A maritime engineer. Associated with analytical precision, brass, cyanotype, boathouse.
@@ -42,12 +42,19 @@ CHARACTERS IN THE LUMINOUS DEEP UNIVERSE:
 - CASSIE: A maker. Associated with workshop chaos, tools, sawdust, tungsten light.
 
 YOUR TASK:
-Analyze this image and provide:
+Analyze this asset and provide:
 1. AGENT: julian | eleanor | cassie.
-2. ROLE: (e.g., Portrait, EXPRESSION, HANDS, TOOLS, ENVIRONMENT).
-3. SLOT: Suggest 1-14 based on the role (1=Primary Face, 2=Side Profile, 3=Contextual, 7=Hands, 8-9=Wardrobe, 10-11=Environment, 12=Props, 14=Style).
-4. SUGGESTED_NAME: A canonical name like LD_BIBLE_[AGENT]_[SLOT]_[ROLE].
+2. ROLE: (e.g., Portrait, EXPRESSION, HANDS, TOOLS, ENVIRONMENT, LOOPS).
+3. SLOT: Suggest 1-14 based on the role.
+4. SUGGESTED_NAME: 
+   - If Image: LD_BIBLE_[AGENT]_[SLOT]_[ROLE]
+   - If Video Loop: LD_SCENE_[ROOM]_[TYPE] (e.g. LD_SCENE_LOUNGE_MAIN, LD_SCENE_KITCHEN_ARTIFACT)
 5. TAGS: 5-10 descriptive technical tags.
+
+VIDEO LOOP SPECIFIC:
+If the visual appears to be a cinemagraph or background loop (e.g., waves, fire, steam):
+- Identify the likely Room: Lounge (Fire), Kitchen (Steam/Kettle), Boathouse (Waves/Water), Study (Dust Motes), Workshop (Sparks).
+- Use naming convention: LD_SCENE_[ROOM]_MAIN (for full backgrounds) or LD_SCENE_[ROOM]_ARTIFACT (for small details).
 
 OUTPUT FORMAT (JSON only):
 {
@@ -138,7 +145,8 @@ export const analyzeIngestIntent = action({
 
 export const smartAgenticUpload = action({
     args: {
-        imageBase64: v.string(),
+        imageBase64: v.string(), // File content (Image or Video)
+        thumbnailBase64: v.optional(v.string()), // Optional thumbnail for video analysis
         mimeType: v.optional(v.string()),
         overrideAgent: v.optional(v.union(v.literal("cassie"), v.literal("eleanor"), v.literal("julian"))),
         overrideSlot: v.optional(v.number()),
@@ -201,7 +209,12 @@ export const smartAgenticUpload = action({
             // ═══════════════════════════════════════════════════════════════
 
             log("SYSTEM", "Starting Vision analysis (parallel)...");
-            const analysisPromise = analyzeIngestIntentCore(args.imageBase64, args.mimeType);
+            // If video, use thumbnail for analysis if available, otherwise fallback to main file (risky for video)
+            const analysisImage = args.thumbnailBase64 || args.imageBase64;
+            // Ensure mime type for analysis is image if we are using thumbnail
+            const analysisMime = args.thumbnailBase64 ? "image/jpeg" : (args.mimeType || "image/jpeg");
+
+            const analysisPromise = analyzeIngestIntentCore(analysisImage, analysisMime);
 
             // For the initial upload, we use a temp name and move it later
             const tempPublicId = `LD_INGEST_TEMP_${timestamp}_${Math.random().toString(36).substring(7)}`;
@@ -209,12 +222,16 @@ export const smartAgenticUpload = action({
             log("SYSTEM", `Starting Cloudinary temp upload: ${tempPublicId}...`);
             const uploadPromise = (async () => {
                 const mimeType = args.mimeType || "image/jpeg";
+                const isVideo = mimeType.startsWith("video/");
+                const resourceType = isVideo ? "video" : "image";
+
                 const timestampSec = Math.floor(timestamp / 1000);
 
                 const signatureParams = [
+                    ...(isVideo ? ["eager=e_loop,f_auto,q_auto"] : []), // Add eager transform for videos
                     `public_id=${tempPublicId}`,
                     `timestamp=${timestampSec}`
-                ].sort().join("&");
+                ].filter(Boolean).sort().join("&");
 
                 const signature = crypto
                     .createHash("sha1")
@@ -228,8 +245,16 @@ export const smartAgenticUpload = action({
                 formData.append("signature", signature);
                 formData.append("public_id", tempPublicId);
 
-                log("SYSTEM", "Sending to Cloudinary API...");
-                const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudinaryCloud}/image/upload`, {
+                if (isVideo) {
+                    formData.append("eager", "e_loop,f_auto,q_auto");
+                    formData.append("resource_type", "video");
+                }
+
+                log("SYSTEM", `Sending to Cloudinary API (${resourceType})...`);
+                // Use correct endpoint based on resource type
+                const endpoint = `https://api.cloudinary.com/v1_1/${cloudinaryCloud}/${resourceType}/upload`;
+
+                const response = await fetch(endpoint, {
                     method: "POST",
                     body: formData
                 });
@@ -271,13 +296,24 @@ export const smartAgenticUpload = action({
             // Note: cloudinary already configured at function start
 
             // 1. Rename to final destination
-            const finalAsset = await cloudinary.uploader.rename(tempPublicId, `${folder}/${finalPublicId}`, {
+            // Note: Rename endpoint also needs resource_type check if implicit
+            // Cloudinary's rename method in SDK usually handles it, but default is image. 
+            // We need to specify resource_type if it is video.
+            const isVideo = (args.mimeType || "").startsWith("video/");
+            const resourceType = isVideo ? "video" : "image";
+
+            const renameFolder = isVideo && baseName.startsWith("LD_SCENE") ? "Luminous Deep/Scenes/Video" : folder;
+            const fullPublicId = `${renameFolder}/${finalPublicId}`;
+
+            const finalAsset = await cloudinary.uploader.rename(tempPublicId, fullPublicId, {
                 overwrite: true,
+                resource_type: resourceType
             });
 
             // 2. Update metadata (tags and context) separately
             await cloudinary.uploader.explicit(finalAsset.public_id, {
                 type: "upload",
+                resource_type: resourceType,
                 context: `agent=${agent}|slot=${slot}|role=${analysis.role}|confidence=${analysis.confidence}`,
                 tags: [agent, analysis.role, "ai-ingested", "fibre-optimized", ...analysis.tags.slice(0, 5)],
             });

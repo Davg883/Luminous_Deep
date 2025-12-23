@@ -178,29 +178,54 @@ export const syncCloudinaryAssets = internalAction({
                     // ═══════════════════════════════════════════════════════════════
                     // SCENE MEDIA MAPPING (existing logic)
                     // ═══════════════════════════════════════════════════════════════
+                    // ═══════════════════════════════════════════════════════════════
+                    // SCENE MEDIA MAPPING (LD_SCENE_ specific)
+                    // ═══════════════════════════════════════════════════════════════
+                    const sceneMatch = filename.match(/^LD_SCENE_([A-Za-z]+)_([A-Za-z0-9]+)/i);
                     let matchedSlug: string | null = null;
-                    const standardMatch = filename.match(/^LD_([A-Za-z]+)_([A-Za-z]+)/i);
+                    let shouldLoop = false;
 
-                    if (standardMatch && !bibleData) { // Don't re-process BIBLE assets
-                        const place = standardMatch[1].toLowerCase();
-                        const type = standardMatch[2].toLowerCase();
+                    if (sceneMatch) {
+                        const room = sceneMatch[1].toLowerCase();
+                        const type = sceneMatch[2].toLowerCase();
+                        shouldLoop = true; // Video loops imply looping
 
-                        if (place === 'workshop') matchedSlug = 'workshop';
-                        else if (place === 'study' || place === 'eleanor') matchedSlug = 'study';
-                        else if (place === 'boathouse' || place === 'julian') matchedSlug = 'boathouse';
-                        else if (place === 'home' || place === 'seagrove') matchedSlug = 'home';
-                        else if (place === 'lounge' || place === 'hearth') matchedSlug = 'lounge';
-                        else if (place === 'kitchen' || place === 'galley') matchedSlug = 'kitchen';
-                        else if (place === 'luminous' || place === 'deep' || place === 'controlroom' || place === 'control') matchedSlug = 'luminous-deep';
+                        // Explicit Room Mapping
+                        if (room === 'lounge' || room === 'fireplace') matchedSlug = 'lounge';
+                        else if (room === 'kitchen' || room === 'galley') matchedSlug = 'kitchen';
+                        else if (room === 'boathouse' || room === 'waves') matchedSlug = 'boathouse';
+                        else if (room === 'study' || room === 'library') matchedSlug = 'study';
+                        else if (room === 'workshop' || room === 'inventor') matchedSlug = 'workshop';
+                        else if (room === 'control' || room === 'luminous') matchedSlug = 'luminous-deep';
 
-                        if (matchedSlug && (type === 'scene' || type === 'zone')) {
-                            console.log(`Syncing ${matchedSlug} with media: ${asset.secure_url}`);
-                            await ctx.runMutation(internal.public.scenes.updateSceneMedia, {
-                                slug: matchedSlug,
-                                mediaUrl: asset.secure_url,
-                            });
-                            updates.push({ slug: matchedSlug, url: asset.secure_url });
+                        console.log(`[SCENE SYNC] Detected Video Loop: ${room} (${type})`);
+                    } else {
+                        // Legacy/Standard Mapping
+                        const standardMatch = filename.match(/^LD_([A-Za-z]+)_([A-Za-z]+)/i);
+
+                        if (standardMatch && !bibleData) { // Don't re-process BIBLE assets
+                            const place = standardMatch[1].toLowerCase();
+                            const type = standardMatch[2].toLowerCase();
+
+                            if (place === 'workshop') matchedSlug = 'workshop';
+                            else if (place === 'study' || place === 'eleanor') matchedSlug = 'study';
+                            else if (place === 'boathouse' || place === 'julian') matchedSlug = 'boathouse';
+                            else if (place === 'home' || place === 'seagrove') matchedSlug = 'home';
+                            else if (place === 'lounge' || place === 'hearth') matchedSlug = 'lounge';
+                            else if (place === 'kitchen' || place === 'galley') matchedSlug = 'kitchen';
+                            else if (place === 'luminous' || place === 'deep' || place === 'controlroom' || place === 'control') matchedSlug = 'luminous-deep';
                         }
+                    }
+
+                    if (matchedSlug) {
+                        console.log(`Syncing ${matchedSlug} with media: ${asset.secure_url}`);
+                        await ctx.runMutation(internal.public.scenes.updateSceneMedia, {
+                            slug: matchedSlug,
+                            mediaUrl: asset.secure_url,
+                            // If it's a scene match, we might want to set looping if it's video
+                            shouldLoop: shouldLoop || asset.resource_type === 'video',
+                        });
+                        updates.push({ slug: matchedSlug, url: asset.secure_url });
                     }
                 } catch (err: any) {
                     console.warn(`Failed to process asset ${asset.public_id}: ${err.message}`);

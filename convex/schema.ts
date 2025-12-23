@@ -127,9 +127,21 @@ export default defineSchema({
             v.literal("systems"),
             v.literal("neutral")
         )),
+        // Cognitive Alignment & Visuals
+        biography: v.optional(v.string()), // Long-form dossier context
+        glimpseUrl: v.optional(v.string()), // Ghost-in-the-glass overlay asset
         isActive: v.boolean(),
         createdAt: v.number(),
-    }).index("by_space", ["homeSpaceId"]).index("by_name", ["name"]),
+        // Synced RAG Embedding
+        embedding: v.optional(v.array(v.float64())),
+    })
+        .index("by_space", ["homeSpaceId"])
+        .index("by_name", ["name"])
+        .vectorIndex("by_embedding", {
+            dimensions: 768,
+            vectorField: "embedding",
+            filterFields: ["name"], // Allow filtering search by specific agent name
+        }),
 
     // ═══════════════════════════════════════════════════════════════
     // CANONICAL OBJECT #4: WORKFLOWS
@@ -284,5 +296,8 @@ export default defineSchema({
         // Metadata
         createdBy: v.optional(v.string()),
         createdAt: v.number(),
+        // Telemetry & Stats
+        runId: v.optional(v.id("runs")),
+        dnaAnchorsUsed: v.optional(v.number()),
     }).index("by_agent", ["agentId"]).index("by_status", ["status"]).index("by_platform", ["platform"]),
 });

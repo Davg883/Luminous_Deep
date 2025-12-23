@@ -39,6 +39,7 @@ export default function ContentFactoryPage() {
     const deleteReveal = useMutation(api.studio.content.deleteReveal);
     const reassignRevealSpace = useMutation(api.studio.content.reassignRevealSpace);
     const triggerReindex = useAction((api.studio.rag as any).triggerReindex);
+    const generateAndUploadImage = useAction(api.studio.imaging.generateAndUploadImage);
 
     const router = useRouter();
 
@@ -70,6 +71,56 @@ export default function ContentFactoryPage() {
     const [isProcessingAI, setIsProcessingAI] = useState(false);
     const [isGeneratingImage, setIsGeneratingImage] = useState(false);
     const [publishingIds, setPublishingIds] = useState<Set<string>>(new Set());
+
+    const handleGenerateImage = async () => {
+        const p = previewData?.visual_prompt || previewData?.image_prompt;
+        if (!p) return;
+
+        setIsGeneratingImage(true);
+        try {
+            const sceneSlugForVoice = previewData.scene_slug || "home";
+            const voice = previewData.voice || (sceneSlugForVoice === "workshop" ? "cassie" : sceneSlugForVoice === "study" ? "eleanor" : "julian");
+
+            const imageUrl = await generateAndUploadImage({
+                prompt: p,
+                agentVoice: voice,
+                folderName: "Luminous Deep/Studio Artifacts"
+            });
+
+            // Update Preview
+            const currentText = previewData.bodyCopy || previewData.content || "";
+            const imageMarkdown = `\n\n![${previewData.title}](${imageUrl})`;
+            const newContent = currentText + imageMarkdown;
+
+            setPreviewData({
+                ...previewData,
+                bodyCopy: newContent,
+                content: newContent,
+                generatedImageUrl: imageUrl
+            });
+
+            // Sync to JSON
+            try {
+                const raw = JSON.parse(jsonInput || "{}");
+                const target = Array.isArray(raw) ? raw[0] : raw;
+                const inner = target.reveal || target.item || target.result || target;
+
+                if (inner.content !== undefined) inner.content = newContent;
+                else if (inner.body_copy !== undefined) inner.body_copy = newContent;
+                else if (inner.bodyCopy !== undefined) inner.bodyCopy = newContent;
+                else inner.content = newContent;
+
+                setJsonInput(JSON.stringify(raw, null, 2));
+            } catch (err) {
+                console.error("Sync error:", err);
+            }
+        } catch (e: any) {
+            console.error("Darkroom error:", e);
+            alert(`❌ Development failed: ${e.message || e}`);
+        } finally {
+            setIsGeneratingImage(false);
+        }
+    };
 
     const handleAIProcess = async () => {
         if (!jsonInput) return;
@@ -730,75 +781,49 @@ export default function ContentFactoryPage() {
                         </div>
                     </div>
 
-                    <div className="flex flex-col gap-4">
+                    <div className="flex flex-col gap-4 overflow-y-auto h-full pr-2 pb-24 custom-scrollbar">
                         <h2 className="text-lg font-bold">Import Preview</h2>
                         {previewData ? (
                             <>
                                 <ContentPreview pack={previewData} sceneTitle={(scenes || []).find((s: any) => s._id === selectedSceneId)?.title} sceneBackgroundUrl={(scenes || []).find((s: any) => s._id === selectedSceneId)?.backgroundMediaUrl} />
 
                                 {/* Image Generation UI (The Darkroom) */}
-                                {previewData.image_prompt && (
-                                    <div className="bg-gradient-to-r from-purple-50 to-indigo-50 p-4 rounded-xl border border-purple-200 shadow-sm">
-                                        <div className="flex items-center justify-between mb-2">
-                                            <h3 className="text-sm font-bold text-purple-800">📸 AI Suggested Image</h3>
-                                            <span className="text-[10px] uppercase tracking-wider text-purple-500">The Darkroom</span>
+                                {(previewData.visual_prompt || previewData.image_prompt) && (
+                                    <div className="mt-4 p-6 bg-gray-900 rounded-xl border border-gray-800 shadow-xl relative group/darkroom">
+                                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 via-pink-500 to-indigo-500 opacity-50"></div>
+                                        <div className="flex justify-between items-center mb-3">
+                                            <span className="text-[10px] font-black text-purple-400 uppercase tracking-widest flex items-center gap-1.5">
+                                                <span className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(168,85,247,0.8)]"></span>
+                                                Darkroom Directive
+                                            </span>
                                         </div>
-                                        <p className="text-sm text-gray-700 italic mb-4 leading-relaxed">
-                                            "{previewData.image_prompt}"
+                                        <p className="text-xs text-purple-200 font-mono mb-4 leading-relaxed border-l-2 border-purple-500/30 pl-3 opacity-80 group-hover/darkroom:opacity-100 transition-opacity">
+                                            "{previewData.visual_prompt || previewData.image_prompt}"
                                         </p>
+
                                         <button
-                                            onClick={async () => {
-                                                if (!previewData.image_prompt) return;
-                                                setIsGeneratingImage(true);
-                                                try {
-                                                    const sceneSlugForVoice = previewData.scene_slug || "home";
-                                                    const voice = previewData.voice || (sceneSlugForVoice === "workshop" ? "cassie" : sceneSlugForVoice === "study" ? "eleanor" : "julian");
-                                                    const sceneSlug = previewData.scene_slug || "home";
-                                                    const imageUrl = await generateAgentImage({
-                                                        prompt: previewData.image_prompt,
-                                                        agentVoice: voice as any,
-                                                        sceneSlug
-                                                    });
-                                                    // Append the image markdown to the content
-                                                    const imageMarkdown = `\n\n![${previewData.title}](${imageUrl})`;
-                                                    setPreviewData({
-                                                        ...previewData,
-                                                        content: (previewData.content || "") + imageMarkdown,
-                                                        generatedImageUrl: imageUrl
-                                                    });
-                                                    alert(`✅ Image generated and added to story!`);
-                                                } catch (e: any) {
-                                                    console.error("Image generation error:", e);
-                                                    alert(`❌ Image generation failed: ${e.message || e}`);
-                                                } finally {
-                                                    setIsGeneratingImage(false);
-                                                }
-                                            }}
+                                            type="button"
+                                            onClick={handleGenerateImage}
                                             disabled={isGeneratingImage}
-                                            className={clsx(
-                                                "w-full px-4 py-3 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2",
-                                                isGeneratingImage
-                                                    ? "bg-purple-300 text-purple-700 cursor-wait"
-                                                    : "bg-purple-600 text-white hover:bg-purple-700 shadow-md hover:shadow-lg"
-                                            )}
+                                            className="mt-4 w-full flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-500 text-white py-2 px-4 rounded-md transition-all shadow-lg font-medium"
                                         >
                                             {isGeneratingImage ? (
                                                 <>
-                                                    <span className="animate-spin">⏳</span>
-                                                    Developing...
+                                                    <span className="animate-spin">⏳</span> Developing...
                                                 </>
                                             ) : (
                                                 <>
-                                                    📸 Generate Image
+                                                    📸 Generate Visual
                                                 </>
                                             )}
                                         </button>
                                         {previewData.generatedImageUrl && (
-                                            <div className="mt-4">
+                                            <div className="mt-4 rounded-lg overflow-hidden border border-gray-700 shadow-2xl relative">
+                                                <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-black/50 to-transparent"></div>
                                                 <img
                                                     src={previewData.generatedImageUrl}
                                                     alt={previewData.title}
-                                                    className="w-full rounded-lg shadow-md"
+                                                    className="w-full h-auto object-cover"
                                                 />
                                             </div>
                                         )}

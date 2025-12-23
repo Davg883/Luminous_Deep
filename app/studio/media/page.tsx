@@ -136,6 +136,39 @@ export default function MediaLibraryPage() {
     // ─── Smart Ingest Handlers ────────────────────────────────────
     // ─── Rate-Limited Processing (Gemini Vision requires cool-down) ───────────
 
+    // Client-side thumbnail extraction for video (lightweight for analysis)
+    const generateVideoThumbnail = (file: File): Promise<string> => {
+        return new Promise((resolve, reject) => {
+            const video = document.createElement("video");
+            video.preload = "metadata";
+            video.src = URL.createObjectURL(file);
+            video.muted = true;
+            video.playsInline = true;
+            video.currentTime = 1; // Capture at 1s mark
+
+            video.onloadeddata = () => {
+                // Ensure we have seeked enough
+                if (video.duration < 1) video.currentTime = 0;
+            };
+
+            video.onseeked = () => {
+                const canvas = document.createElement("canvas");
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                const ctx = canvas.getContext("2d");
+                if (ctx) {
+                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    resolve(canvas.toDataURL("image/jpeg", 0.7).split(",")[1]);
+                } else {
+                    reject(new Error("Canvas context failed"));
+                }
+                URL.revokeObjectURL(video.src);
+            };
+
+            video.onerror = (e) => reject(e);
+        });
+    };
+
     const processUpload = async (uploadId: string, file: File): Promise<void> => {
         // Guard: Check if this upload is already being processed or completed
         const existingUpload = uploadQueue.find(u => u.id === uploadId);
@@ -157,10 +190,22 @@ export default function MediaLibraryPage() {
             reader.readAsDataURL(file);
             const base64 = await base64Promise;
 
+            // Video Handling: Extract Thumbnail for Analysis
+            let thumbnailBase64: string | undefined;
+            if (file.type.startsWith("video/")) {
+                try {
+                    thumbnailBase64 = await generateVideoThumbnail(file);
+                    setIngestLogs(prev => [`> [${new Date().toLocaleTimeString()}] 🎬 VIDEO DETECTED: Generated thumb for Gemini analysis`, ...prev].slice(0, 100));
+                } catch (e) {
+                    console.warn("Failed to generate video thumbnail:", e);
+                }
+            }
+
             setUploadQueue(prev => prev.map(u => u.id === uploadId ? { ...u, status: "uploading", progress: 40 } : u));
 
             const result = await smartAgenticUploadAction({
                 imageBase64: base64,
+                thumbnailBase64: thumbnailBase64,
                 mimeType: file.type,
             });
 
@@ -215,7 +260,7 @@ export default function MediaLibraryPage() {
     };
 
     // P-Limit style chunked concurrency with cool-down for API rate limits
-    const CONCURRENCY_LIMIT = 2; // Reduced from 10 to prevent rate limiting
+    const CONCURRENCY_LIMIT = 3; // Optimized for Fibre Video Ingest
     const COOL_DOWN_MS = 1500; // 1.5 second delay between files for Gemini Vision
 
     const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -247,7 +292,7 @@ export default function MediaLibraryPage() {
 
     const handleFiles = async (files: FileList | null) => {
         if (!files) return;
-        const newFiles = Array.from(files).filter(f => f.type.startsWith("image/")).slice(0, 50); // Allow up to 50 files
+        const newFiles = Array.from(files).filter(f => f.type.startsWith("image/") || f.type.startsWith("video/")).slice(0, 50); // Allow up to 50 files
         if (newFiles.length === 0) return;
 
         const totalBytes = newFiles.reduce((sum, f) => sum + f.size, 0);
@@ -458,7 +503,7 @@ export default function MediaLibraryPage() {
                         id="file-upload"
                         type="file"
                         className="hidden"
-                        accept="image/*"
+                        accept="image/*,video/mp4,video/webm,video/quicktime"
                         multiple
                         onChange={handleFileSelect}
                     />
@@ -571,6 +616,13 @@ export default function MediaLibraryPage() {
                                         )}
                                         alt="preview"
                                     />
+
+                                    {/* Video Indicator */}
+                                    {upload.file.type.startsWith("video/") && (
+                                        <div className="absolute top-2 right-2 bg-black/50 text-white p-1 rounded backdrop-blur-sm z-10">
+                                            <Activity className="w-3 h-3" />
+                                        </div>
+                                    )}
 
                                     {/* The Radar: Scanning Animation */}
                                     {(upload.status === "analyzing" || upload.status === "uploading") && (

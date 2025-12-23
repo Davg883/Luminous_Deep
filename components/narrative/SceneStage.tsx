@@ -10,6 +10,7 @@ interface SceneStageProps {
     isFocused?: boolean;
     playbackSpeed?: number;
     shouldLoop?: boolean; // false = cinematic transition (play once, hold on final frame)
+    glimpseUrl?: string; // The Ghost in the Glass
 }
 
 export default function SceneStage({
@@ -17,7 +18,8 @@ export default function SceneStage({
     children,
     isFocused = false,
     playbackSpeed = 1.0,
-    shouldLoop = true // Default to looping for ambient atmospheres
+    shouldLoop = true,
+    glimpseUrl
 }: SceneStageProps) {
     const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -81,6 +83,31 @@ export default function SceneStage({
                             />
                         </motion.div>
                     )}
+
+                    {/* THE GLIMPSE MECHANIC (Ghost in the Glass) */}
+                    {glimpseUrl && (
+                        <motion.div
+                            key="glimpse-layer"
+                            className="absolute inset-0 z-10 pointer-events-none mix-blend-screen"
+                            animate={{
+                                opacity: [0, 0.1, 0, 0]
+                            }}
+                            transition={{
+                                duration: 45,
+                                times: [0, 0.04, 0.08, 1], // 0s->2s (in), 2s->4s (out), rest silence
+                                repeat: Infinity,
+                                ease: "easeInOut"
+                            }}
+                        >
+                            <Image
+                                src={glimpseUrl}
+                                alt="Reflected Presence"
+                                fill
+                                className="object-cover opacity-100" // Opacity controlled by parent motion.div
+                            />
+                        </motion.div>
+                    )}
+
                     {/* Overlay to ensure text legibility depending on domain later */}
                     <div className="absolute inset-0 bg-black/10" />
                 </div>

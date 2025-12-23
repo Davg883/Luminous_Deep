@@ -105,6 +105,8 @@ export const updateAgent = mutation({
         tools: v.optional(v.array(v.string())),
         autonomy: v.optional(v.number()),
         isActive: v.optional(v.boolean()),
+        biography: v.optional(v.string()),
+        glimpseUrl: v.optional(v.string()),
     },
     handler: async (ctx, { id, ...updates }) => {
         const filtered = Object.fromEntries(

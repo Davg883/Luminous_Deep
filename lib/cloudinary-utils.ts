@@ -52,6 +52,14 @@ export function getHighResSocialUrl(
 
         // DPR 2x for retina displays
         "dpr_2.0",
+
+        // ═══════════════════════════════════════════════════════════════
+        // PROVENANCE STAMP: Cognitive Lock Verification
+        // ═══════════════════════════════════════════════════════════════
+        // Text: 'Broadcasting from The Luminous Deep'
+        // Style: Transport Typography (Arial/Helvetica style), 40% opacity, bottom-right
+        "l_text:Arial_25_bold_tracking_2:Broadcasting%20from%20The%20Luminous%20Deep,co_white,o_40",
+        "fl_layer_apply,g_south_east,x_40,y_40",
     ].join(",");
 
     // Insert transformations into the URL
