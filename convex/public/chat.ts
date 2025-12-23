@@ -189,8 +189,8 @@ USER QUERY: ${args.prompt}
 `;
 
         try {
-            // Use verified working model: Gemini 3 Flash Preview
-            const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
+            // Use verified working model: Gemini 2.0 Flash Experimental
+            const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
             const result = await model.generateContent(systemPrompt);
             const response = result.response.text();
 
