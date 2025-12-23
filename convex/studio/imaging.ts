@@ -64,7 +64,8 @@ async function nanoBananaProCore(
 ): Promise<string> {
     const apiKey = process.env.GOOGLE_API_KEY;
     if (!apiKey) {
-        throw new Error("Missing GOOGLE_API_KEY environment variable");
+        console.error("[NANO BANANA PRO] Configuration check failed: GOOGLE_API_KEY not found");
+        throw new Error("GOOGLE_API_KEY is required for AI image generation. Verify Convex Environment Variables.");
     }
 
     const agentDNA = AGENT_VISUAL_DNA[agentVoice];
@@ -345,7 +346,11 @@ async function uploadToCloudinaryWithMetadata(
     const cloudinaryApiSecret = process.env.CLOUDINARY_API_SECRET;
 
     if (!cloudinaryCloud || !cloudinaryApiKey || !cloudinaryApiSecret) {
-        throw new Error("Missing Cloudinary credentials");
+        console.error("[CLOUDINARY] Configuration check failed:");
+        console.error(`  CLOUD_NAME: ${cloudinaryCloud ? "✓ present" : "✗ MISSING"}`);
+        console.error(`  API_KEY: ${cloudinaryApiKey ? "✓ present" : "✗ MISSING"}`);
+        console.error(`  API_SECRET: ${cloudinaryApiSecret ? "✓ present" : "✗ MISSING"}`);
+        throw new Error("Cloudinary configuration missing. Verify Convex Environment Variables.");
     }
 
     const timestamp = Math.floor(Date.now() / 1000);

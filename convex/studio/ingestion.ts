@@ -150,14 +150,45 @@ export const smartAgenticUpload = action({
             console.log(entry);
         };
 
-        const timestamp = Date.now();
+        // ═══════════════════════════════════════════════════════════════
+        // TASK 1: HARDENED CONFIGURATION VALIDATION
+        // Verify all required environment variables before any operations
+        // ═══════════════════════════════════════════════════════════════
+
+        log("SYSTEM", "Initializing Smart Ingest pipeline...");
+
+        // 1. Validate Google API Key for Gemini Vision
+        const googleApiKey = process.env.GOOGLE_API_KEY;
+        if (!googleApiKey) {
+            log("SYSTEM", "✗ Configuration check failed: GOOGLE_API_KEY missing");
+            throw new Error("GOOGLE_API_KEY is required for Vision analysis. Verify Convex Environment Variables.");
+        }
+
+        // 2. Validate Cloudinary credentials
         const cloudinaryCloud = process.env.CLOUDINARY_CLOUD_NAME;
         const cloudinaryApiKey = process.env.CLOUDINARY_API_KEY;
         const cloudinaryApiSecret = process.env.CLOUDINARY_API_SECRET;
 
         if (!cloudinaryCloud || !cloudinaryApiKey || !cloudinaryApiSecret) {
-            throw new Error("Missing Cloudinary credentials");
+            log("SYSTEM", "✗ Configuration check failed: Cloudinary credentials incomplete");
+            log("SYSTEM", `  CLOUD_NAME: ${cloudinaryCloud ? "✓" : "✗"}`);
+            log("SYSTEM", `  API_KEY: ${cloudinaryApiKey ? "✓" : "✗"}`);
+            log("SYSTEM", `  API_SECRET: ${cloudinaryApiSecret ? "✓" : "✗"}`);
+            throw new Error("Cloudinary configuration missing. Verify Convex Environment Variables.");
         }
+
+        // 3. Pre-initialize Cloudinary SDK configuration
+        const { v2: cloudinarySDK } = await import("cloudinary");
+        cloudinarySDK.config({
+            cloud_name: cloudinaryCloud,
+            api_key: cloudinaryApiKey,
+            api_secret: cloudinaryApiSecret,
+            secure: true,
+        });
+
+        log("SYSTEM", "✓ Configuration validated. All credentials present.");
+
+        const timestamp = Date.now();
 
         try {
             log("SYSTEM", "Initiating parallel Vision-to-Cloud streams...");
@@ -225,12 +256,7 @@ export const smartAgenticUpload = action({
             log(agent, `Finalizing archival storage...`);
 
             // Finalize Cloudinary Asset (Rename and Add Context/Tags)
-            const { v2: cloudinarySDK } = await import("cloudinary");
-            cloudinarySDK.config({
-                cloud_name: cloudinaryCloud,
-                api_key: cloudinaryApiKey,
-                api_secret: cloudinaryApiSecret,
-            });
+            // Note: cloudinarySDK already configured at function start
 
             // 1. Rename to final destination
             const finalAsset = await cloudinarySDK.uploader.rename(tempPublicId, `${folder}/${finalPublicId}`, {
@@ -278,7 +304,21 @@ export const smartAgenticUpload = action({
             };
 
         } catch (error: any) {
-            log("SYSTEM", `✗ Error: ${error.message}`);
+            // Enhanced error telemetry
+            log("SYSTEM", "═══════════════════════════════════════════════════");
+            log("SYSTEM", `✗ INGEST FAILED: ${error.message}`);
+
+            // Check for common configuration issues
+            if (error.message?.includes("config") || error.message?.includes("credentials") || error.message?.includes("API")) {
+                log("SYSTEM", "✗ Configuration check failed. Verify Convex Environment Variables:");
+                log("SYSTEM", "  Required: GOOGLE_API_KEY, CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET");
+            }
+
+            if (error.message?.includes("401") || error.message?.includes("403") || error.message?.includes("Unauthorized")) {
+                log("SYSTEM", "✗ Authentication failed. API keys may be invalid or expired.");
+            }
+
+            log("SYSTEM", "═══════════════════════════════════════════════════");
             throw new Error(`Smart upload failed: ${error.message}`);
         }
     }
