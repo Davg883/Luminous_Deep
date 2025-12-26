@@ -65,7 +65,7 @@ const Threshold = () => {
             />
 
             {/* --- UI: THE TRIGGER --- */}
-            <div className={`absolute inset-0 flex items-center justify-center transition-all duration-700 ${sequence === 'idle' ? 'opacity-100' : 'opacity-0 pointer-events-none scale-150'}`}>
+            <div className={`absolute inset-0 flex items-center justify-center transition-all duration-700 z-50 ${sequence === 'idle' ? 'opacity-100' : 'opacity-0 pointer-events-none scale-150'}`}>
                 <button
                     onClick={handleEnter}
                     className="group relative px-10 py-5 bg-white/10 backdrop-blur-xl border border-white/20 rounded-full overflow-hidden transition-all hover:bg-white/20 hover:scale-105 hover:border-rose-200/50 shadow-[0_0_40px_rgba(255,255,255,0.1)]"
