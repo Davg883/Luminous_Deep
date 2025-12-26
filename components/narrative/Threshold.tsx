@@ -5,8 +5,6 @@ import { ArrowRight, Sparkles } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 const imgReality = "https://res.cloudinary.com/dptqxjhb8/image/upload/v1766747029/arch_izrqhm.png";
-const imgWarp = "https://res.cloudinary.com/dptqxjhb8/image/upload/v1766747029/transistion_mswypd.png";
-const imgWonderland = "https://res.cloudinary.com/dptqxjhb8/image/upload/v1766747029/secret_room_va2d3l.png";
 
 const Threshold = () => {
     const [sequence, setSequence] = useState('idle'); // idle, warping, arrived
@@ -35,29 +33,33 @@ const Threshold = () => {
     return (
         <div className="relative w-full h-screen overflow-hidden bg-stone-950 text-white font-serif selection:bg-rose-500/30">
 
-            {/* --- LAYER 1: REALITY (The Archway) --- */}
+            {/* --- VIDEO LAYER (The Transition) --- */}
+            {sequence !== 'idle' && (
+                <div className="absolute inset-0 z-0">
+                    <video
+                        autoPlay
+                        muted
+                        playsInline
+                        className="w-full h-full object-cover"
+                        onEnded={(e) => {
+                            // Video ends on the sanctuary view, we just hold the frame
+                            // Consider pausing to be safe, though most browsers hold last frame by default
+                            e.currentTarget.pause();
+                        }}
+                    >
+                        <source src="https://res.cloudinary.com/dptqxjhb8/video/upload/v1766751962/Inspiring_Sanctuary_Transition_Video_byjxoq.mp4" type="video/mp4" />
+                    </video>
+                    {/* Inner Atmosphere Layer for text readability */}
+                    <div className="absolute inset-0 bg-stone-950/20 backdrop-saturate-150" />
+                </div>
+            )}
+
+            {/* --- LAYER 1: REALITY (The Archway) - Fades out --- */}
             <div
-                className={`absolute inset-0 bg-cover bg-center transition-all duration-[2000ms] ease-in-out ${sequence === 'idle' ? 'scale-100 opacity-100' : 'scale-[3] opacity-0'
+                className={`absolute inset-0 bg-cover bg-center transition-all duration-[2000ms] ease-in-out z-10 ${sequence === 'idle' ? 'scale-100 opacity-100' : 'scale-[3] opacity-0 pointer-events-none'
                     }`}
                 style={{ backgroundImage: `url(${imgReality})` }}
             />
-
-            {/* --- LAYER 2: THE WARP (The Bridge) --- */}
-            <div
-                className={`absolute inset-0 bg-cover bg-center mix-blend-screen transition-all duration-[2000ms] ease-linear ${sequence === 'warping' ? 'opacity-100 scale-125' : 'opacity-0 scale-100'
-                    }`}
-                style={{ backgroundImage: `url(${imgWarp})` }}
-            />
-
-            {/* --- LAYER 3: WONDERLAND (The Sanctuary) --- */}
-            <div
-                className={`absolute inset-0 bg-cover bg-center transition-all duration-[3000ms] ease-out ${sequence === 'arrived' ? 'opacity-100 scale-100 blur-0' : 'opacity-0 scale-110 blur-xl'
-                    }`}
-                style={{ backgroundImage: `url(${imgWonderland})` }}
-            >
-                {/* Inner Atmosphere Layer */}
-                <div className="absolute inset-0 bg-stone-950/40 backdrop-saturate-150" />
-            </div>
 
             {/* --- UI: THE TRIGGER --- */}
             <div className={`absolute inset-0 flex items-center justify-center transition-all duration-700 ${sequence === 'idle' ? 'opacity-100' : 'opacity-0 pointer-events-none scale-150'}`}>
