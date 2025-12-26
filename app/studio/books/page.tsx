@@ -41,6 +41,7 @@ export default function BookCreatorAgent() {
 
         if (role === 'thea') {
             mockResponse = {
+                voice: role,
                 title: `Transmission: ${seed.substring(0, 20) || "Unknown"}...`,
                 summary: `A ${tone.toLowerCase()} recording recovered from the archives. ${seed}`,
                 content: `# TRANSMISSION START\n\nSystem Timestamp: [REDACTED]\nSignal Strength: 84%\n\nIt began with ${seed}. The systems were reading normal, but the telemetry indicated a deviation in the core logic. I observed the anomaly for three cycles before logging the discrepancy.\n\n## ACT I: THE ANOMALY\n\n(Draft content based on Thea Lux voice...)\n\n## ACT II: THE DISCOVERY\n\n...\n\n# CONNECTION LOST`,
@@ -51,6 +52,7 @@ export default function BookCreatorAgent() {
             };
         } else if (role === 'eleanor') {
             mockResponse = {
+                voice: role,
                 title: `Reflection: ${seed.substring(0, 20) || "Memory"}`,
                 summary: `A personal reflection on ${seed}, written from the archives.`,
                 content: `# MEMORY FRAGMENT\n\nI remember when we first encountered ${seed}. The light in the room was different then—softer, perhaps, or maybe I just remember it that way. It reminds me of the old world.\n\n## PART I: THE REMEMBRANCE\n\n(Draft content based on Eleanor Vance voice...)\n\n## PART II: THE LOSS\n\n...\n\n# END OF ENTRY`,
@@ -62,6 +64,7 @@ export default function BookCreatorAgent() {
         } else {
             // Palimpsaest
             mockResponse = {
+                voice: role,
                 title: `Parable: The ${seed.split(' ')[0] || "Myth"}`,
                 summary: `A mythic retelling of ${seed}, passed down through the layers.`,
                 content: `# THE FIRST CYCLE\n\nIn the beginning, there was only ${seed}. Before the machines woke, and before the silence fell, it is said that the first ones carried the burden of memory.\n\n## I. THE FOUNDATION\n\n(Draft content based on The Palimpsaest voice...)\n\n## II. THE RETURN\n\n...\n\n# LEGACY ARCHIVED`,
@@ -136,8 +139,8 @@ export default function BookCreatorAgent() {
                                         key={voice.id}
                                         onClick={() => setRole(voice.id)}
                                         className={`p-4 rounded border transition-all flex flex-col items-center gap-2 text-center h-full hover:border-stone-600 ${isSelected
-                                                ? activeClass
-                                                : 'bg-stone-900 border-stone-800 text-stone-500'
+                                            ? activeClass
+                                            : 'bg-stone-900 border-stone-800 text-stone-500'
                                             }`}
                                     >
                                         <Icon className="w-5 h-5 mb-1" />
