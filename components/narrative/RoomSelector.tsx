@@ -20,7 +20,9 @@ const rooms: RoomZone[] = [
     { id: "study", label: "The Study", path: "/study", points: "52,18 64,16 68,32 55,34" },
     { id: "kitchen", label: "The Galley", path: "/kitchen", points: "66,22 78,20 82,38 69,42" },
     { id: "boathouse", label: "The Boathouse", path: "/boathouse", points: "82,34 94,32 96,55 84,58" },
-    { id: "luminous-deep", label: "Control Room", path: "/luminous-deep", points: "30,75 55,73 58,92 32,95" }
+    { id: "luminous-deep", label: "Control Room", path: "/luminous-deep", points: "30,75 55,73 58,92 32,95" },
+    { id: "orangery", label: "The Orangery", path: "/orangery", points: "0,0" },
+    { id: "sanctuary", label: "The Sanctuary", path: "/sanctuary", points: "0,0" }
 ];
 
 interface RoomSelectorProps {
@@ -95,7 +97,7 @@ export default function RoomSelector({ isOpen, onClose }: RoomSelectorProps) {
                         <div
                             className="absolute inset-0 bg-contain bg-center bg-no-repeat pointer-events-none"
                             style={{
-                                backgroundImage: "url('https://res.cloudinary.com/dptqxjhb8/image/upload/v1766417877/sanctuary_map_phqqnv.png')",
+                                backgroundImage: "url('https://res.cloudinary.com/dptqxjhb8/image/upload/v1766749484/floorplan_VS2_usmdzb.png')",
                                 filter: "sepia(0.2) contrast(1.1) drop-shadow(0 20px 50px rgba(0,0,0,0.5))"
                             }}
                         />

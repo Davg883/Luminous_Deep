@@ -539,7 +539,7 @@ export default function ContentFactoryPage() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {["study", "boathouse", "workshop", "home", "lounge", "kitchen"].map(room => (
+                                {["study", "boathouse", "workshop", "home", "lounge", "kitchen", "orangery", "sanctuary"].map(room => (
                                     <tr key={room}>
                                         <td className="p-3 font-medium text-gray-900 bg-gray-50 border border-gray-200 capitalize">{room}</td>
                                         {["early_year", "spring", "summer", "autumn", "winter"].map(phase => {

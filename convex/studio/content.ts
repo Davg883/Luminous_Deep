@@ -211,6 +211,8 @@ export const publishPack = mutation({
         if (domain === "workshop") voice = "sparkline";
         else if (domain === "study") voice = "hearth";
         else if (domain === "boathouse") voice = "systems";
+        else if (domain === "orangery") voice = "cassie";
+        else if (domain === "sanctuary") voice = "neutral";
         else if (domain === "home") voice = "hearth";
 
         const revealId = await ctx.db.insert("reveals", {

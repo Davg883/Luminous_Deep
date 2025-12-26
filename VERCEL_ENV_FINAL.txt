@@ -1,0 +1,19 @@
+# --- FINAL Vercel Configuration ---
+
+# 1. Deployment (The Key That Is Likely Missing/Empty)
+# Go to https://dashboard.convex.dev > Settings > Deploy Keys > Generate New
+# Copy the key that starts with "prod:..." and paste it below.
+CONVEX_DEPLOY_KEY=prod:perfect-buffalo-974
+
+# 2. Core Configuration
+NEXT_PUBLIC_CONVEX_URL=https://perfect-buffalo-974.convex.cloud
+CONVEX_DEPLOYMENT=prod:perfect-buffalo-974
+
+# 3. Authentication (Clerk)
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_Y2xlcmsuY2xlcmsuY29tJ...
+# ^ CHECK YOUR CLERK DASHBOARD. This truncated key might be wrong if you just copy-pasted.
+CLERK_SECRET_KEY=sk_test_0cRMzhAVRNugA5IfQA3X0h7UiYWHDMTP0pAVDTe7iA
+# ^ You must get this from Clerk Dashboard.
+
+# 4. Legacy (Optional)
+CLOUDINARY_CLOUD_NAME=dptqxjhb8

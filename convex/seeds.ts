@@ -569,3 +569,80 @@ export const addPortalToBoathouse = mutation({
     }
 });
 
+// ═══════════════════════════════════════════════════════════════
+// EXPANSION: ORANGERY & SANCTUARY
+// ═══════════════════════════════════════════════════════════════
+export const seedExpansion = mutation({
+    args: {},
+    handler: async (ctx) => {
+        // 1. The Orangery
+        await upsertSceneFull(
+            ctx,
+            "orangery",
+            "The Orangery",
+            "orangery",
+            "https://res.cloudinary.com/dptqxjhb8/image/upload/v1766691940/orangery_fnhmne.png",
+            [
+                {
+                    name: "Glass Pane",
+                    x: 30, y: 50,
+                    role: "canon",
+                    revealType: "text",
+                    revealTitle: "Condensation",
+                    revealContent: "The air here is thick, humid. Plants thrive on the moisture that runs down the glass. It is a place of breath, of biology overtaking structure.",
+                    hint: "Inspect the glass",
+                    voice: "cassie",
+                    revealTags: ["nature", "growth"]
+                },
+                {
+                    name: "Hearth Door",
+                    x: 10, y: 60,
+                    role: "transition",
+                    destinationSlug: "/lounge",
+                    hint: "Return to Hearth"
+                },
+                {
+                    name: "Sanctuary Path",
+                    x: 80, y: 50,
+                    role: "transition",
+                    destinationSlug: "/sanctuary",
+                    hint: "Enter Sanctuary"
+                }
+            ],
+            ["nature", "growth", "health"]
+        );
+
+        // 2. The Sanctuary
+        await upsertSceneFull(
+            ctx,
+            "sanctuary",
+            "The Sanctuary",
+            "sanctuary",
+            "https://res.cloudinary.com/dptqxjhb8/image/upload/v1766747029/secret_room_va2d3l.png",
+            [
+                {
+                    name: "The Mirror",
+                    x: 50, y: 50,
+                    role: "canon",
+                    revealType: "text",
+                    revealTitle: "Reflection",
+                    revealContent: "There is no noise here. Only the sound of your own thoughts. It is uncomfortable at first, then essential.",
+                    hint: "Look into mirror",
+                    voice: "neutral",
+                    revealTags: ["private", "self"]
+                },
+                {
+                    name: "Orangery Door",
+                    x: 50, y: 80,
+                    role: "transition",
+                    destinationSlug: "/orangery",
+                    hint: "Return to Orangery"
+                }
+            ],
+            ["private", "secret"]
+        );
+
+        return "Seeded Expansion: Orangery & Sanctuary";
+    }
+});
+

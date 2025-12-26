@@ -22,7 +22,9 @@ export default defineSchema({
             v.literal("home"),
             v.literal("lounge"),
             v.literal("kitchen"),
-            v.literal("luminous-deep") // The Control Room (Sub-Basement)
+            v.literal("luminous-deep"), // The Control Room (Sub-Basement)
+            v.literal("orangery"),
+            v.literal("sanctuary")
         ),
         backgroundMediaUrl: v.string(),
         isPublished: v.boolean(),

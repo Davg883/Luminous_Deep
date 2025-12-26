@@ -4,7 +4,7 @@ import { Id } from "@/convex/_generated/dataModel";
 // CANONICAL TYPES FOR LUMINOUS DEEP
 // ═══════════════════════════════════════════════════════════════
 
-export type Domain = "workshop" | "study" | "boathouse" | "home" | "lounge" | "kitchen" | "luminous-deep";
+export type Domain = "workshop" | "study" | "boathouse" | "home" | "lounge" | "kitchen" | "luminous-deep" | "orangery" | "sanctuary";
 export type RevealType = "text" | "audio" | "video" | "image";
 export type ChapterStatus = "draft" | "published";
 
