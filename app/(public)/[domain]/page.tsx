@@ -104,7 +104,7 @@ export default function DomainPage() {
     const handleObjectClick = (obj: any) => {
         // Special Roles
         if (obj.role === "library") {
-            setIsReceiverOpen(true);
+            router.push("/sanctuary/library");
             return;
         }
 
