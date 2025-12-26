@@ -6,9 +6,12 @@ import { useParams } from "next/navigation";
 import GlitchGate from "@/components/narrative/GlitchGate";
 import { Loader2 } from "lucide-react";
 
-export default function SignalReaderPage({ params }: { params: { slug: string } }) {
-    const slug = params.slug;
-    const signal = useQuery(api.public.signals.getSignal, { slug });
+export default function SignalReaderPage() {
+    const params = useParams();
+    // Ensure slug is a string
+    const slug = typeof params?.slug === 'string' ? params.slug : null;
+
+    const signal = useQuery(api.public.signals.getSignal, slug ? { slug } : "skip");
 
     if (signal === undefined) {
         return (
