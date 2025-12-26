@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
 import { SyncMediaButton } from "@/components/studio/SyncMediaButton";
-import { LayoutDashboard, FileEdit, Image, Users, Share2, BookOpen } from "lucide-react";
+import { LayoutDashboard, FileEdit, Image, Users, Share2, BookOpen, PenTool } from "lucide-react";
 
 export default function StudioLayout({
     children,
@@ -17,6 +17,7 @@ export default function StudioLayout({
     const navItems = [
         { label: "Dashboard", href: "/studio", icon: LayoutDashboard },
         { label: "Content Factory", href: "/studio/content", icon: FileEdit },
+        { label: "Book Creator", href: "/studio/books", icon: PenTool },
         { label: "The Library", href: "/studio/signals", icon: BookOpen },
         { label: "Media Library", href: "/studio/media", icon: Image },
         { label: "Agent Manager", href: "/studio/agents", icon: Users },
