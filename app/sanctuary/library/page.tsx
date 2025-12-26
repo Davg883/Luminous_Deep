@@ -54,9 +54,13 @@ export default function LibraryPage() {
                                 <span>1998-2026</span>
                             </div>
 
-                            <h1 className="text-5xl md:text-7xl lg:text-8xl font-serif text-white font-bold leading-[0.9] mb-8 tracking-tight drop-shadow-2xl">
-                                THE SILENT<br />ARCHIVE
-                            </h1>
+                            <div className="mb-8 w-full max-w-2xl">
+                                <img
+                                    src="https://res.cloudinary.com/dptqxjhb8/image/upload/v1766773735/The_Silent_Archive_mcpsr0.png"
+                                    alt="THE SILENT ARCHIVE"
+                                    className="w-full h-auto object-contain drop-shadow-2xl"
+                                />
+                            </div>
 
                             <p className="text-lg md:text-xl text-stone-400 max-w-2xl mb-10 leading-relaxed font-serif">
                                 Fiction recovered from a system that remembers too much. Eleanor enters a bunker she was told was empty, only to find the machines are still listening.
