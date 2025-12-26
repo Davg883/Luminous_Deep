@@ -33,7 +33,7 @@ export default function GlitchGate({ content, isLocked, glitchPoint }: GlitchGat
             </div>
 
             {/* Corrupted Zone */}
-            <div className="relative overflow-hidden p-8 border border-neutral-800 bg-neutral-900/50 rounded-lg backdrop-blur-sm">
+            <div className="relative overflow-hidden p-8 border border-neutral-800 bg-neutral-900/50 rounded-lg backdrop-blur-sm min-h-[350px]">
                 <div className="absolute inset-0 bg-repeating-linear-gradient(
                     0deg,
                     transparent,
@@ -49,7 +49,7 @@ export default function GlitchGate({ content, isLocked, glitchPoint }: GlitchGat
                 ))}
 
                 {/* The Glass Panel Overlay */}
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 backdrop-blur-[2px]">
+                <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/60 backdrop-blur-[2px]">
                     <motion.div
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
@@ -64,7 +64,10 @@ export default function GlitchGate({ content, isLocked, glitchPoint }: GlitchGat
                         <h3 className="text-xl font-mono font-bold text-rose-500 tracking-widest mb-2">SIGNAL LOST</h3>
                         <p className="text-stone-500 text-xs font-mono mb-6 uppercase tracking-wider">Transmission Interrupted</p>
 
-                        <button className="w-full py-3 px-4 bg-rose-950/50 border border-rose-500 text-rose-400 font-mono text-xs tracking-widest uppercase rounded flex items-center justify-center gap-2 hover:bg-rose-900/80 hover:shadow-[0_0_15px_rgba(244,63,94,0.4)] transition-all animate-pulse">
+                        <button
+                            onClick={() => alert("Payment Gateway Integration Pending")}
+                            className="w-full py-3 px-4 bg-rose-950/50 border border-rose-500 text-rose-400 font-mono text-xs tracking-widest uppercase rounded flex items-center justify-center gap-2 hover:bg-rose-900/80 hover:shadow-[0_0_15px_rgba(244,63,94,0.4)] transition-all animate-pulse"
+                        >
                             [ RESTORE FEED // £0.99 ]
                         </button>
                     </motion.div>
