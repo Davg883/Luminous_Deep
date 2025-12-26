@@ -21,8 +21,8 @@ const rooms: RoomZone[] = [
     { id: "kitchen", label: "The Galley", path: "/kitchen", points: "66,22 78,20 82,38 69,42" },
     { id: "boathouse", label: "The Boathouse", path: "/boathouse", points: "82,34 94,32 96,55 84,58" },
     { id: "luminous-deep", label: "Control Room", path: "/luminous-deep", points: "30,75 55,73 58,92 32,95" },
-    { id: "orangery", label: "The Orangery", path: "/orangery", points: "0,0" },
-    { id: "sanctuary", label: "The Sanctuary", path: "/sanctuary", points: "0,0" }
+    { id: "orangery", label: "The Orangery", path: "/orangery", points: "12,50 30,45 32,70 14,75" },
+    { id: "sanctuary", label: "The Sanctuary", path: "/sanctuary", points: "60,65 75,60 80,80 65,85" }
 ];
 
 interface RoomSelectorProps {

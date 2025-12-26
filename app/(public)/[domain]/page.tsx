@@ -29,7 +29,7 @@ export default function DomainPage() {
     }, [domain, router]);
 
     // Strict Domain Validation (luminous-deep has its own dedicated page)
-    const validDomains = ["workshop", "study", "boathouse", "home", "lounge", "kitchen"];
+    const validDomains = ["workshop", "study", "boathouse", "home", "lounge", "kitchen", "orangery", "sanctuary"];
 
     // If it's luminous-deep, show loading while redirect happens
     if (domain === "luminous-deep") {
