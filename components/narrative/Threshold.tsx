@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { ArrowRight, Sparkles } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Sparkles } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 const imgReality = "https://res.cloudinary.com/dptqxjhb8/image/upload/v1766754591/arch_ugkv57.png";
@@ -73,6 +73,17 @@ const Threshold = () => {
                     <span className="relative z-10 flex items-center gap-3 font-sans text-sm tracking-[0.25em] uppercase text-white">
                         Enter The Deep <ArrowRight className="w-4 h-4" />
                     </span>
+                </button>
+            </div>
+
+            {/* --- UI: NAVIGATION --- */}
+            <div className={`absolute top-8 left-8 z-50 transition-opacity duration-500 ${sequence === 'idle' ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+                <button
+                    onClick={() => router.push('/orangery')}
+                    className="flex items-center gap-3 px-4 py-2 bg-black/20 hover:bg-black/40 backdrop-blur-md rounded-full border border-white/10 text-white/70 hover:text-white transition-all text-xs tracking-widest uppercase font-sans group"
+                >
+                    <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+                    Back to House
                 </button>
             </div>
 
