@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowRight, Sparkles } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
-const imgReality = "https://res.cloudinary.com/dptqxjhb8/image/upload/v1766747029/arch_izrqhm.png";
+const imgReality = "https://res.cloudinary.com/dptqxjhb8/image/upload/v1766754591/arch_ugkv57.png";
 
 const Threshold = () => {
     const [sequence, setSequence] = useState('idle'); // idle, warping, arrived
