@@ -44,9 +44,12 @@ export default function LibraryIndexPage() {
                 ) : (
                     <div className="grid gap-4">
                         {signals.map((signal) => (
-                            <Link
+                            <div
                                 key={signal._id}
-                                href={`/sanctuary/library/reader/${signal.slug}`}
+                                onClick={() => {
+                                    console.log("Navigating to:", `/sanctuary/library/reader/${signal.slug}`);
+                                    router.push(`/sanctuary/library/reader/${signal.slug}`);
+                                }}
                                 className="group relative flex items-center gap-6 p-6 rounded-xl bg-stone-900/30 border border-white/5 hover:border-emerald-500/30 hover:bg-stone-900/50 transition-all cursor-pointer overflow-hidden block"
                             >
                                 {/* Hover Glow */}
@@ -59,12 +62,15 @@ export default function LibraryIndexPage() {
                                 </div>
 
                                 <div className="flex-1 min-w-0 z-10 relative">
-                                    <h3 className="text-xl text-stone-300 font-serif group-hover:text-white transition-colors truncate">
-                                        {signal.title}
+                                    <h3 className="text-xl text-stone-300 font-serif group-hover:text-white transition-colors">
+                                        {signal.title || "Untitled Signal"}
                                     </h3>
                                     <div className="flex items-center gap-4 mt-2">
                                         <span className="text-[10px] uppercase tracking-wider font-mono text-stone-600 group-hover:text-stone-500">
                                             {new Date(signal.publishedAt).toLocaleDateString()}
+                                        </span>
+                                        <span className="text-[9px] text-stone-700 font-mono lowercase">
+                                            /{signal.slug}
                                         </span>
                                         {signal.isLocked && (
                                             <span className="flex items-center gap-1 text-[10px] uppercase tracking-wider font-mono text-rose-900/80 bg-rose-900/10 px-1.5 py-0.5 rounded border border-rose-900/20">
