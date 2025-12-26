@@ -36,7 +36,7 @@ export default function LibraryPage() {
                         <div className="relative aspect-[2/3] w-full bg-stone-900 rounded shadow-2xl overflow-hidden border border-white/5 group">
                             <div
                                 className="absolute inset-0 bg-cover bg-center transition-transform duration-1000 group-hover:scale-105"
-                                style={{ backgroundImage: `url('https://images.unsplash.com/photo-1614726365723-49cfae96c6b4?q=80&w=2574&auto=format&fit=crop')` }}
+                                style={{ backgroundImage: `url('https://res.cloudinary.com/dptqxjhb8/image/upload/v1766777168940.png')` }}
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                         </div>
@@ -54,13 +54,9 @@ export default function LibraryPage() {
                                 <span>1998-2026</span>
                             </div>
 
-                            <div className="mb-8 w-full max-w-2xl">
-                                <img
-                                    src="https://res.cloudinary.com/dptqxjhb8/image/upload/v1766773735/The_Silent_Archive_mcpsr0.png"
-                                    alt="THE SILENT ARCHIVE"
-                                    className="w-full h-auto object-contain drop-shadow-2xl"
-                                />
-                            </div>
+                            <h1 className="text-5xl md:text-7xl lg:text-8xl font-serif text-white font-bold leading-[0.9] mb-8 tracking-tight drop-shadow-2xl">
+                                THE SILENT<br />ARCHIVE
+                            </h1>
 
                             <p className="text-lg md:text-xl text-stone-400 max-w-2xl mb-10 leading-relaxed font-serif">
                                 Fiction recovered from a system that remembers too much. Eleanor enters a bunker she was told was empty, only to find the machines are still listening.
