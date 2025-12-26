@@ -224,10 +224,22 @@ export default defineSchema({
         coverImage: v.optional(v.string()), // URL
         summaryShort: v.optional(v.string()), // For card
         summaryLong: v.optional(v.string()), // For detail view
-        duration: v.optional(v.string()), // e.g. '18 min read' (Changed to optional to prevent migration failure for existing records, though prompt says v.string(), safer to be optional initially or default, but seeding will fix it.)
+        duration: v.optional(v.string()), // e.g. '18 min read'
         releaseDate: v.optional(v.number()),
+        // Narrative Governance: Stratum & Voice
+        stratum: v.optional(v.union(
+            v.literal("signal"),
+            v.literal("myth"),
+            v.literal("reflection")
+        )),
+        voice: v.optional(v.union(
+            v.literal("thea"),
+            v.literal("eleanor"),
+            v.literal("palimpsaest")
+        )),
     }).index("by_season_episode", ["season", "episode"])
-        .index("by_slug", ["slug"]),
+        .index("by_slug", ["slug"])
+        .index("by_stratum", ["stratum"]),
 
     user_progress: defineTable({
         userId: v.string(), // Clerk ID or similar
@@ -331,4 +343,15 @@ export default defineSchema({
         runId: v.optional(v.id("runs")),
         dnaAnchorsUsed: v.optional(v.number()),
     }).index("by_agent", ["agentId"]).index("by_status", ["status"]).index("by_platform", ["platform"]),
+
+    // ═══════════════════════════════════════════════════════════════
+    // CANON VAULT — Immutable World Rules (Level 0)
+    // ═══════════════════════════════════════════════════════════════
+    canon_vault: defineTable({
+        slug: v.string(),
+        title: v.string(),
+        content: v.string(), // Markdown
+        version: v.number(),
+        lockedAt: v.optional(v.number()),
+    }).index("by_slug", ["slug"]),
 });

@@ -86,10 +86,17 @@ export const generateEpisode = action({
 
             const parsed = JSON.parse(cleanedText);
 
-            // Inject the voice metadata for frontend logic
+            // Inject the voice and stratum metadata for frontend/save logic
+            const voiceToStratum: Record<string, string> = {
+                thea: "signal",
+                eleanor: "reflection",
+                palimpsaest: "myth",
+            };
+
             return {
                 ...parsed,
-                voice: args.voice
+                voice: args.voice,
+                stratum: voiceToStratum[args.voice] ?? "signal"
             };
         } catch (e) {
             console.error("Gemini Generation Error:", e);

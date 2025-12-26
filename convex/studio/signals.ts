@@ -21,6 +21,17 @@ export const publishSignal = mutation({
         content: v.string(),
         isLocked: v.boolean(),
         glitchPoint: v.optional(v.number()),
+        // Narrative Governance
+        stratum: v.optional(v.union(
+            v.literal("signal"),
+            v.literal("myth"),
+            v.literal("reflection")
+        )),
+        voice: v.optional(v.union(
+            v.literal("thea"),
+            v.literal("eleanor"),
+            v.literal("palimpsaest")
+        )),
     },
     handler: async (ctx, args) => {
         const payload = {
@@ -32,6 +43,9 @@ export const publishSignal = mutation({
             isLocked: args.isLocked,
             glitchPoint: args.glitchPoint,
             publishedAt: Date.now(),
+            // Narrative Governance: Default stratum to "signal" if not provided
+            stratum: args.stratum ?? "signal",
+            voice: args.voice,
         };
 
         if (args.id) {

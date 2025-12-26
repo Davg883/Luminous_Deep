@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { Brain, Sparkles, User, FileText, Save, Terminal, ScrollText } from 'lucide-react';
+import { Brain, Sparkles, User, FileText, Save, Terminal, ScrollText, Lock } from 'lucide-react';
 
 type NarrativeVoice = 'thea' | 'eleanor' | 'palimpsaest';
 
@@ -18,6 +18,12 @@ const VOICES: Array<{
         { id: "eleanor", title: "Eleanor Vance", subtitle: "Reflections & Memory", accent: "rose", icon: User },
         { id: "palimpsaest", title: "The Palimpsaest", subtitle: "Myth & Inheritance", accent: "amber", icon: ScrollText },
     ];
+
+const VOICE_TO_STRATUM: Record<NarrativeVoice, 'signal' | 'myth' | 'reflection'> = {
+    thea: 'signal',
+    eleanor: 'reflection',
+    palimpsaest: 'myth',
+};
 
 export default function BookCreatorAgent() {
     // STATE
@@ -61,11 +67,14 @@ export default function BookCreatorAgent() {
             await saveDraft({
                 title: output.title,
                 slug: output.slug,
-                season: output.season,
-                episode: output.episode,
+                season: output.season ?? 0,
+                episode: output.episode ?? 999,
                 content: output.content,
                 isLocked: true, // Drafts start locked
-                glitchPoint: 500
+                glitchPoint: 500,
+                // Narrative Governance
+                stratum: output.stratum,
+                voice: output.voice,
             });
             alert("Draft Saved to Archive.");
         } catch (e) {
@@ -125,6 +134,13 @@ export default function BookCreatorAgent() {
                             })}
                         </div>
                         <p className="text-[10px] text-stone-600 text-center italic font-serif">Different voices generate different kinds of truth.</p>
+
+                        {/* Stratum Badge - Locked, Read-Only */}
+                        <div className="mt-4 flex items-center justify-center gap-2 text-xs font-mono uppercase tracking-widest text-stone-500 bg-stone-900/50 border border-stone-800 rounded py-2 px-4">
+                            <Lock className="w-3 h-3" />
+                            <span>Stratum:</span>
+                            <span className="text-white font-bold">{VOICE_TO_STRATUM[role].toUpperCase()}</span>
+                        </div>
                     </div>
 
                     {/* Seed Input */}
