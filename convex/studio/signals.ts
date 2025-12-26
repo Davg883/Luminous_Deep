@@ -61,21 +61,28 @@ export const deleteSignal = mutation({
     },
 });
 
-export const repairSlugs = mutation({
+export const rebuildSlugs = mutation({
     args: {},
     handler: async (ctx) => {
         const signals = await ctx.db.query("signals").collect();
         let count = 0;
+        const updates = [];
 
         for (const signal of signals) {
-            if (!signal.slug) {
-                const saneTitle = signal.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
-                const newSlug = `${signal.season.toString().padStart(3, '0')}-${signal.episode.toString().padStart(3, '0')}-${saneTitle}`;
+            const saneTitle = signal.title
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, '-') // Replace non-alphanumeric with hyphens
+                .replace(/(^-|-$)+/g, '');   // Trim leading/trailing hyphens
 
-                await ctx.db.patch(signal._id, { slug: newSlug });
-                count++;
-            }
+            // Default to 'untitled' if title is empty or symbols
+            const finalTitle = saneTitle || 'untitled';
+
+            const newSlug = `${signal.season.toString().padStart(3, '0')}-${signal.episode.toString().padStart(3, '0')}-${finalTitle}`;
+
+            await ctx.db.patch(signal._id, { slug: newSlug });
+            updates.push(`${signal.title} -> ${newSlug}`);
+            count++;
         }
-        return `Repaired ${count} signals with missing slugs.`;
+        return `Rebuilt ${count} slugs:\n${updates.join('\n')}`;
     },
 });
