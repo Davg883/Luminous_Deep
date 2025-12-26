@@ -102,7 +102,12 @@ export default function DomainPage() {
     const handleObjectClick = (obj: any) => {
         // Check if this is a transition/portal object with a destination
         if (obj.role === "transition" && obj.destinationSlug) {
-            router.push(obj.destinationSlug);
+            // Special Interception: The Sanctuary requires a rite of passage (Threshold)
+            if (obj.destinationSlug === "/sanctuary") {
+                router.push("/threshold"); // Route to the cinematic transition
+            } else {
+                router.push(obj.destinationSlug);
+            }
         } else if (obj.revealId) {
             setActiveRevealId(obj.revealId);
         }
