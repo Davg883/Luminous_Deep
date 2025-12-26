@@ -5,6 +5,7 @@ import { useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import { useRouter } from 'next/navigation';
 import { Radio, Lock, Play, ArrowLeft } from 'lucide-react';
+import Link from 'next/link';
 
 export default function LibraryIndexPage() {
     const signals = useQuery(api.public.signals.listSignals);
@@ -43,21 +44,21 @@ export default function LibraryIndexPage() {
                 ) : (
                     <div className="grid gap-4">
                         {signals.map((signal) => (
-                            <div
+                            <Link
                                 key={signal._id}
-                                onClick={() => router.push(`/sanctuary/library/reader/${signal.slug}`)}
-                                className="group relative flex items-center gap-6 p-6 rounded-xl bg-stone-900/30 border border-white/5 hover:border-emerald-500/30 hover:bg-stone-900/50 transition-all cursor-pointer overflow-hidden"
+                                href={`/sanctuary/library/reader/${signal.slug}`}
+                                className="group relative flex items-center gap-6 p-6 rounded-xl bg-stone-900/30 border border-white/5 hover:border-emerald-500/30 hover:bg-stone-900/50 transition-all cursor-pointer overflow-hidden block"
                             >
                                 {/* Hover Glow */}
-                                <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/0 via-emerald-500/0 to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/0 via-emerald-500/0 to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
 
-                                <div className="flex-shrink-0 w-16 h-16 bg-black rounded-lg flex items-center justify-center border border-white/5 group-hover:border-emerald-500/30 transition-colors z-10">
+                                <div className="flex-shrink-0 w-16 h-16 bg-black rounded-lg flex items-center justify-center border border-white/5 group-hover:border-emerald-500/30 transition-colors z-10 relative">
                                     <span className="font-mono text-emerald-600 font-bold text-sm group-hover:text-emerald-500">
                                         {signal.season.toString().padStart(2, '0')}.{signal.episode.toString().padStart(2, '0')}
                                     </span>
                                 </div>
 
-                                <div className="flex-1 min-w-0 z-10">
+                                <div className="flex-1 min-w-0 z-10 relative">
                                     <h3 className="text-xl text-stone-300 font-serif group-hover:text-white transition-colors truncate">
                                         {signal.title}
                                     </h3>
@@ -73,13 +74,13 @@ export default function LibraryIndexPage() {
                                     </div>
                                 </div>
 
-                                <div className="flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity -translate-x-4 group-hover:translate-x-0 z-10">
-                                    <span className="text-[10px] font-mono uppercase tracking-widest text-emerald-500">Tune In</span>
-                                    <div className="p-3 bg-emerald-500/10 rounded-full text-emerald-500 border border-emerald-500/20">
+                                <div className="flex items-center gap-3 opacity-100 transition-opacity -translate-x-0 z-10 relative">
+                                    <span className="text-[10px] font-mono uppercase tracking-widest text-emerald-500 group-hover:text-emerald-400">Tune In</span>
+                                    <div className="p-3 bg-emerald-500/10 rounded-full text-emerald-500 border border-emerald-500/20 group-hover:bg-emerald-500 group-hover:text-black transition-all">
                                         <Play className="w-4 h-4 fill-current" />
                                     </div>
                                 </div>
-                            </div>
+                            </Link>
                         ))}
                     </div>
                 )}
