@@ -43,43 +43,45 @@ export default function LibraryPage() {
                         </div>
                     </div>
 
-                    {/* RIGHT: Series Metadata (Text Only) */}
+                    {/* RIGHT: Series Metadata (Text in Glassmorphic Card) */}
                     <div className="md:col-span-8 lg:col-span-9 flex flex-col justify-center">
+                        <div className="p-8 md:p-12 bg-stone-900/40 backdrop-blur-xl border border-white/5 rounded-2xl shadow-2xl">
 
-                        {/* Series Header */}
-                        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mb-6 text-xs text-stone-500 font-mono uppercase tracking-widest">
-                            <span className="text-emerald-500">Season Zero: The Buried Protocol</span>
-                            <span>Sci-Fi</span>
-                            <span>Mystery</span>
-                            <span>1998-2026</span>
-                        </div>
-
-                        {/* Title (Text-based) */}
-                        <h1 className="text-4xl md:text-6xl lg:text-7xl font-serif text-white font-bold leading-[0.9] mb-8 tracking-tight">
-                            THE SILENT ARCHIVE
-                        </h1>
-
-                        <p className="text-lg md:text-xl text-stone-400 max-w-2xl mb-10 leading-relaxed font-serif">
-                            Fiction recovered from a system that remembers too much. Eleanor enters a bunker she was told was empty, only to find the machines are still listening.
-                        </p>
-
-                        {/* Primary Action */}
-                        {heroSignal ? (
-                            <Link
-                                href={`/sanctuary/library/reader/${heroSignal.slug}`}
-                                className="inline-flex items-center gap-4 px-10 py-5 bg-emerald-600 hover:bg-emerald-500 text-white text-base font-bold tracking-widest uppercase rounded shadow-[0_0_40px_rgba(16,185,129,0.3)] hover:shadow-[0_0_60px_rgba(16,185,129,0.5)] transition-all transform hover:-translate-y-1 w-fit"
-                            >
-                                <Play className="w-6 h-6 fill-current" />
-                                {heroSignal.userProgress?.progress > 0
-                                    ? `Resume Episode ${heroSignal.episode}`
-                                    : `Play Episode ${heroSignal.episode}`
-                                }
-                            </Link>
-                        ) : (
-                            <div className="inline-flex px-8 py-4 bg-stone-800 text-stone-500 rounded font-mono uppercase tracking-widest cursor-not-allowed w-fit">
-                                Offline
+                            {/* Series Header */}
+                            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mb-6 text-xs text-stone-500 font-mono uppercase tracking-widest">
+                                <span className="text-emerald-500">Season Zero: The Buried Protocol</span>
+                                <span>Sci-Fi</span>
+                                <span>Mystery</span>
+                                <span>1998-2026</span>
                             </div>
-                        )}
+
+                            {/* Title (Text-based) */}
+                            <h1 className="text-4xl md:text-6xl lg:text-7xl font-serif text-white font-bold leading-[0.9] mb-8 tracking-tight">
+                                THE SILENT ARCHIVE
+                            </h1>
+
+                            <p className="text-lg md:text-xl text-stone-400 max-w-2xl mb-10 leading-relaxed font-serif">
+                                Fiction recovered from a system that remembers too much. Eleanor enters a bunker she was told was empty, only to find the machines are still listening.
+                            </p>
+
+                            {/* Primary Action */}
+                            {heroSignal ? (
+                                <Link
+                                    href={`/sanctuary/library/reader/${heroSignal.slug}`}
+                                    className="inline-flex items-center gap-4 px-10 py-5 bg-emerald-600 hover:bg-emerald-500 text-white text-base font-bold tracking-widest uppercase rounded shadow-[0_0_40px_rgba(16,185,129,0.3)] hover:shadow-[0_0_60px_rgba(16,185,129,0.5)] transition-all transform hover:-translate-y-1"
+                                >
+                                    <Play className="w-6 h-6 fill-current" />
+                                    {heroSignal.userProgress?.progress > 0
+                                        ? `Resume Episode ${heroSignal.episode}`
+                                        : `Play Episode ${heroSignal.episode}`
+                                    }
+                                </Link>
+                            ) : (
+                                <div className="inline-flex px-8 py-4 bg-stone-800 text-stone-500 rounded font-mono uppercase tracking-widest cursor-not-allowed">
+                                    Offline
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
