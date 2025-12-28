@@ -54,7 +54,6 @@ interface AudioSovereignContextType {
     hasInteracted: boolean;
     isPlaying: boolean;
     currentRoom: string;
-    lowFrequencyAmplitude: number;
     setMuted: (muted: boolean) => void;
     setVolume: (volume: number) => void;
     toggleMute: () => void;
@@ -77,14 +76,10 @@ export function AudioSovereignProvider({ children }: AudioSovereignProviderProps
     const [hasInteracted, setHasInteracted] = useState(false);
     const [isPlaying, setIsPlaying] = useState(false);
     const [currentRoom, setCurrentRoom] = useState("default");
-    const [lowFrequencyAmplitude, setLowFrequencyAmplitude] = useState(0);
 
     // Single audio element ref
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const currentSourceRef = useRef<string | undefined>(undefined);
-
-    // Breathing animation ref
-    const breathingRef = useRef<number | null>(null);
 
     // Navigation
     const pathname = usePathname();
@@ -150,23 +145,11 @@ export function AudioSovereignProvider({ children }: AudioSovereignProviderProps
     const activateSanctuary = useCallback(() => {
         setIsMuted(false);
         setHasInteracted(true);
+        setIsPlaying(true);
 
         if (audioRef.current) {
             audioRef.current.volume = volume;
             audioRef.current.play().catch(() => { });
-            setIsPlaying(true);
-        }
-
-        // Start breathing animation
-        if (!breathingRef.current) {
-            const animate = () => {
-                // Simulate 40Hz breathing (smooth sine wave)
-                const time = Date.now() / 1000;
-                const amplitude = (Math.sin(time * 2 * Math.PI * 0.5) + 1) / 2; // 0.5Hz breathing
-                setLowFrequencyAmplitude(amplitude * 0.6);
-                breathingRef.current = requestAnimationFrame(animate);
-            };
-            animate();
         }
     }, [volume]);
 
@@ -184,9 +167,6 @@ export function AudioSovereignProvider({ children }: AudioSovereignProviderProps
         }
 
         return () => {
-            if (breathingRef.current) {
-                cancelAnimationFrame(breathingRef.current);
-            }
             if (audioRef.current) {
                 audioRef.current.pause();
                 audioRef.current.src = "";
@@ -261,7 +241,6 @@ export function AudioSovereignProvider({ children }: AudioSovereignProviderProps
                 hasInteracted,
                 isPlaying,
                 currentRoom,
-                lowFrequencyAmplitude,
                 setMuted,
                 setVolume,
                 toggleMute,
@@ -298,7 +277,7 @@ export function AudioSovereignControl() {
 
     if (!audio) return null;
 
-    const { isMuted, volume, hasInteracted, isPlaying, lowFrequencyAmplitude, toggleMute, setVolume, activateSanctuary } = audio;
+    const { isMuted, volume, hasInteracted, isPlaying, toggleMute, setVolume, activateSanctuary } = audio;
 
     const handleMouseEnter = () => {
         if (hideTimeoutRef.current) {
@@ -373,24 +352,14 @@ export function AudioSovereignControl() {
                 {/* Ripple Effect */}
                 {isPlaying && !isMuted && (
                     <>
-                        <span
-                            className="absolute inset-0 rounded-full bg-cyan-500/20 animate-ping"
-                            style={{ animationDuration: `${1 + (1 - lowFrequencyAmplitude)}s` }}
-                        />
-                        <span
-                            className="absolute inset-[-4px] rounded-full border border-cyan-500/30"
-                            style={{
-                                opacity: lowFrequencyAmplitude,
-                                transform: `scale(${1 + lowFrequencyAmplitude * 0.2})`
-                            }}
-                        />
+                        <span className="absolute inset-0 rounded-full bg-cyan-500/20 animate-ping" style={{ animationDuration: '2s' }} />
+                        <span className="absolute inset-[-4px] rounded-full border border-cyan-500/30 animate-pulse" />
                     </>
                 )}
 
                 {/* Sound Wave Icon */}
                 <SoundWaveIcon
                     isPlaying={isPlaying && !isMuted}
-                    amplitude={lowFrequencyAmplitude}
                     hasInteracted={hasInteracted}
                 />
             </button>
@@ -407,27 +376,39 @@ export function AudioSovereignControl() {
     );
 }
 
-// Custom Sound Wave Icon
-function SoundWaveIcon({ isPlaying, amplitude, hasInteracted }: { isPlaying: boolean; amplitude: number; hasInteracted: boolean }) {
-    const bars = [0.4, 0.7, 1, 0.7, 0.4];
+// Custom Sound Wave Icon with CSS animation
+function SoundWaveIcon({ isPlaying, hasInteracted }: { isPlaying: boolean; hasInteracted: boolean }) {
+    // Bar heights at rest and animation delays
+    const bars = [
+        { restHeight: 4, animHeight: 12, delay: '0ms' },
+        { restHeight: 6, animHeight: 16, delay: '100ms' },
+        { restHeight: 8, animHeight: 20, delay: '50ms' },
+        { restHeight: 6, animHeight: 16, delay: '150ms' },
+        { restHeight: 4, animHeight: 12, delay: '75ms' },
+    ];
 
     return (
         <div className="flex items-center justify-center w-5 h-5 gap-[2px]">
-            {bars.map((baseHeight, i) => (
+            {bars.map((bar, i) => (
                 <div
                     key={i}
                     className={clsx(
-                        "w-[2px] rounded-full transition-all duration-150",
+                        "w-[2px] rounded-full",
                         isPlaying ? "bg-cyan-400" : hasInteracted ? "bg-white/40" : "bg-white/60"
                     )}
                     style={{
-                        height: isPlaying
-                            ? `${(baseHeight + amplitude * 0.3) * 16}px`
-                            : `${baseHeight * 8}px`,
-                        transitionDelay: `${i * 30}ms`
+                        height: isPlaying ? `${bar.animHeight}px` : `${bar.restHeight}px`,
+                        animation: isPlaying ? `soundwave 0.8s ease-in-out infinite` : 'none',
+                        animationDelay: bar.delay,
                     }}
                 />
             ))}
+            <style jsx>{`
+                @keyframes soundwave {
+                    0%, 100% { transform: scaleY(0.5); }
+                    50% { transform: scaleY(1); }
+                }
+            `}</style>
         </div>
     );
 }
