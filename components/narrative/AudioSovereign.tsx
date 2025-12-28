@@ -421,12 +421,15 @@ export function AudioSovereignControl() {
             onMouseLeave={handleMouseLeave}
         >
             {/* Volume Slider (revealed on hover) */}
-            <div className={clsx(
-                "transition-all duration-300 origin-right overflow-hidden",
-                showVolume
-                    ? "w-32 opacity-100 pointer-events-auto"
-                    : "w-0 opacity-0 pointer-events-none"
-            )}>
+            <div
+                className={clsx(
+                    "transition-all duration-300 origin-right overflow-hidden",
+                    showVolume
+                        ? "w-32 opacity-100 pointer-events-auto"
+                        : "w-0 opacity-0 pointer-events-none"
+                )}
+                onMouseEnter={handleMouseEnter}
+            >
                 <div className="glass-morphic rounded-full px-4 py-2 backdrop-blur-xl bg-black/40">
                     <input
                         type="range"
@@ -435,6 +438,13 @@ export function AudioSovereignControl() {
                         step="0.01"
                         value={volume}
                         onChange={(e) => setVolume(parseFloat(e.target.value))}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onInput={() => {
+                            // Clear any pending hide timeout while actively dragging
+                            if (hideTimeoutRef.current) {
+                                clearTimeout(hideTimeoutRef.current);
+                            }
+                        }}
                         className="w-full h-1 bg-white/20 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-[0_0_10px_rgba(255,255,255,0.5)]"
                     />
                 </div>
