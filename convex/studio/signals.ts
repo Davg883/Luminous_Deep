@@ -81,6 +81,30 @@ export const deleteSignal = mutation({
     },
 });
 
+// Quick Update mutation for World Map editor
+export const updateSignal = mutation({
+    args: {
+        id: v.id("signals"),
+        coverImage: v.optional(v.string()),
+        stratum: v.optional(v.union(
+            v.literal("signal"),
+            v.literal("myth"),
+            v.literal("reflection")
+        )),
+        title: v.optional(v.string()),
+        subtitle: v.optional(v.string()),
+    },
+    handler: async (ctx, args) => {
+        const { id, ...updates } = args;
+        // Filter out undefined values
+        const cleanUpdates = Object.fromEntries(
+            Object.entries(updates).filter(([_, v]) => v !== undefined)
+        );
+        await ctx.db.patch(id, cleanUpdates);
+        return id;
+    },
+});
+
 export const rebuildSlugs = mutation({
     args: {},
     handler: async (ctx) => {

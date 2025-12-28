@@ -1,22 +1,27 @@
 "use client";
 
 import React, { useState } from 'react';
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { Id } from "@/convex/_generated/dataModel";
 import { Lock, ScrollText, Terminal, User, Shield, BookOpen, Map, Sparkles } from 'lucide-react';
 import { KanbanColumn, KanbanCard, QuickViewModal } from '@/components/studio/AssetGrid';
 
 interface QuickViewData {
+    id?: Id<"signals">;
     title: string;
     subtitle?: string;
     coverImage?: string;
     summary?: string;
     badge?: string;
     badgeColor?: 'emerald' | 'amber' | 'violet' | 'rose' | 'blue';
+    stratum?: string;
+    editable?: boolean;
 }
 
 export default function WorldMapPage() {
     const worldMap = useQuery(api.studio.world.getWorldMap);
+    const updateSignal = useMutation(api.studio.signals.updateSignal);
     const [quickViewData, setQuickViewData] = useState<QuickViewData | null>(null);
 
     if (worldMap === undefined) {
@@ -41,6 +46,21 @@ export default function WorldMapPage() {
 
     const openQuickView = (data: QuickViewData) => {
         setQuickViewData(data);
+    };
+
+    const handleSaveSignal = async (updates: { coverImage?: string; stratum?: string; title?: string; subtitle?: string }) => {
+        if (!quickViewData?.id) return;
+
+        await updateSignal({
+            id: quickViewData.id,
+            coverImage: updates.coverImage,
+            stratum: updates.stratum as "signal" | "myth" | "reflection" | undefined,
+            title: updates.title,
+            subtitle: updates.subtitle,
+        });
+
+        // Close modal after save
+        setQuickViewData(null);
     };
 
     return (
@@ -72,7 +92,7 @@ export default function WorldMapPage() {
             ════════════════════════════════════════════════════════════════ */}
             <div className="flex gap-6 overflow-x-auto pb-6 snap-x">
 
-                {/* Column 1: CANON (Gold) */}
+                {/* Column 1: CANON (Gold) - Not editable */}
                 <KanbanColumn
                     title="CANON"
                     subtitle="Immutable World Rules"
@@ -95,13 +115,14 @@ export default function WorldMapPage() {
                                     summary: doc.content?.slice(0, 300) + '...',
                                     badge: 'CANON',
                                     badgeColor: 'amber',
+                                    editable: false, // Canon is immutable
                                 })}
                             />
                         ))
                     )}
                 </KanbanColumn>
 
-                {/* Column 2: MYTH (Purple) */}
+                {/* Column 2: MYTH (Purple) - Editable signals with stratum='myth' */}
                 <KanbanColumn
                     title="MYTH"
                     subtitle="Foundational Stories"
@@ -120,12 +141,15 @@ export default function WorldMapPage() {
                                 coverImage={myth.coverImage}
                                 isLocked={myth.isLocked}
                                 onClick={() => openQuickView({
+                                    id: myth._id,
                                     title: myth.title,
                                     subtitle: 'Foundational Myth',
                                     coverImage: myth.coverImage,
                                     summary: myth.summaryShort || myth.content?.slice(0, 300) + '...',
                                     badge: 'MYTH',
                                     badgeColor: 'violet',
+                                    stratum: 'myth',
+                                    editable: true,
                                 })}
                             />
                         ))
@@ -152,12 +176,15 @@ export default function WorldMapPage() {
                                 coverImage={signal.coverImage}
                                 isLocked={signal.isLocked}
                                 onClick={() => openQuickView({
+                                    id: signal._id,
                                     title: signal.title,
                                     subtitle: `Season ${signal.season} • Episode ${signal.episode}`,
                                     coverImage: signal.coverImage,
                                     summary: signal.summaryShort || signal.content?.slice(0, 300) + '...',
                                     badge: `S${signal.season} E${signal.episode}`,
                                     badgeColor: 'emerald',
+                                    stratum: signal.stratum || 'signal',
+                                    editable: true,
                                 })}
                             />
                         ))
@@ -183,12 +210,15 @@ export default function WorldMapPage() {
                                 coverImage={ref.coverImage}
                                 isLocked={ref.isLocked}
                                 onClick={() => openQuickView({
+                                    id: ref._id,
                                     title: ref.title,
                                     subtitle: 'Eleanor Vance',
                                     coverImage: ref.coverImage,
                                     summary: ref.summaryShort || ref.content?.slice(0, 300) + '...',
                                     badge: 'REFLECTION',
                                     badgeColor: 'blue',
+                                    stratum: 'reflection',
+                                    editable: true,
                                 })}
                             />
                         ))
@@ -197,7 +227,7 @@ export default function WorldMapPage() {
 
             </div>
 
-            {/* Quick View Modal */}
+            {/* Quick View/Editor Modal */}
             <QuickViewModal
                 isOpen={!!quickViewData}
                 onClose={() => setQuickViewData(null)}
@@ -207,16 +237,11 @@ export default function WorldMapPage() {
                 summary={quickViewData?.summary}
                 badge={quickViewData?.badge}
                 badgeColor={quickViewData?.badgeColor}
-            >
-                <div className="flex gap-3">
-                    <button className="flex-1 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-bold uppercase tracking-wider transition-colors">
-                        Open in Reader
-                    </button>
-                    <button className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded text-xs font-bold uppercase tracking-wider transition-colors">
-                        Edit
-                    </button>
-                </div>
-            </QuickViewModal>
+                editable={quickViewData?.editable}
+                itemId={quickViewData?.id}
+                stratum={quickViewData?.stratum}
+                onSave={handleSaveSignal}
+            />
 
         </div>
     );

@@ -172,7 +172,7 @@ export function AssetGrid({
 }
 
 // ═══════════════════════════════════════════════════════════════
-// QUICK VIEW MODAL - Reusable modal for asset details
+// QUICK VIEW MODAL - Reusable modal for asset details (with edit support)
 // ═══════════════════════════════════════════════════════════════
 export interface QuickViewModalProps {
     isOpen: boolean;
@@ -184,19 +184,46 @@ export interface QuickViewModalProps {
     badge?: string;
     badgeColor?: 'emerald' | 'amber' | 'violet' | 'rose' | 'blue';
     children?: React.ReactNode;
+    // Edit support
+    editable?: boolean;
+    itemId?: string;
+    stratum?: string;
+    onSave?: (updates: { coverImage?: string; stratum?: string; title?: string; subtitle?: string }) => Promise<void>;
 }
 
 export function QuickViewModal({
     isOpen,
     onClose,
-    title,
-    subtitle,
-    coverImage,
+    title: initialTitle,
+    subtitle: initialSubtitle,
+    coverImage: initialCoverImage,
     summary,
     badge,
     badgeColor = 'emerald',
-    children
+    children,
+    editable = false,
+    itemId,
+    stratum: initialStratum,
+    onSave,
 }: QuickViewModalProps) {
+    const [isEditing, setIsEditing] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+
+    // Edit form state
+    const [editTitle, setEditTitle] = useState(initialTitle);
+    const [editSubtitle, setEditSubtitle] = useState(initialSubtitle || '');
+    const [editCoverImage, setEditCoverImage] = useState(initialCoverImage || '');
+    const [editStratum, setEditStratum] = useState(initialStratum || 'signal');
+
+    // Reset form when modal opens with new data
+    React.useEffect(() => {
+        setEditTitle(initialTitle);
+        setEditSubtitle(initialSubtitle || '');
+        setEditCoverImage(initialCoverImage || '');
+        setEditStratum(initialStratum || 'signal');
+        setIsEditing(false);
+    }, [initialTitle, initialSubtitle, initialCoverImage, initialStratum]);
+
     if (!isOpen) return null;
 
     const badgeColors = {
@@ -207,12 +234,35 @@ export function QuickViewModal({
         blue: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
     };
 
+    const handleSave = async () => {
+        if (!onSave) return;
+        setIsSaving(true);
+        try {
+            await onSave({
+                title: editTitle !== initialTitle ? editTitle : undefined,
+                subtitle: editSubtitle !== initialSubtitle ? editSubtitle : undefined,
+                coverImage: editCoverImage !== initialCoverImage ? editCoverImage : undefined,
+                stratum: editStratum !== initialStratum ? editStratum : undefined,
+            });
+            setIsEditing(false);
+        } catch (e) {
+            console.error('Failed to save:', e);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleClose = () => {
+        setIsEditing(false);
+        onClose();
+    };
+
     return (
         <>
             {/* Backdrop */}
             <div
                 className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50"
-                onClick={onClose}
+                onClick={handleClose}
             />
 
             {/* Modal */}
@@ -223,10 +273,10 @@ export function QuickViewModal({
                 >
                     {/* Header with image */}
                     <div className="relative h-48 bg-gradient-to-br from-slate-800 to-slate-950">
-                        {coverImage && (
+                        {(isEditing ? editCoverImage : initialCoverImage) && (
                             <img
-                                src={coverImage}
-                                alt={title}
+                                src={isEditing ? editCoverImage : initialCoverImage}
+                                alt={isEditing ? editTitle : initialTitle}
                                 className="w-full h-full object-cover opacity-60"
                             />
                         )}
@@ -234,35 +284,142 @@ export function QuickViewModal({
 
                         {/* Close button */}
                         <button
-                            onClick={onClose}
+                            onClick={handleClose}
                             className="absolute top-4 right-4 p-2 bg-black/40 hover:bg-black/60 rounded-full transition-colors"
                         >
                             <X className="w-4 h-4 text-white" />
                         </button>
 
-                        {/* Title overlay */}
-                        <div className="absolute bottom-0 left-0 right-0 p-6">
-                            {badge && (
-                                <span className={clsx(
-                                    "inline-block px-2 py-1 rounded border text-[10px] font-mono font-bold uppercase mb-2",
-                                    badgeColors[badgeColor]
-                                )}>
-                                    {badge}
-                                </span>
-                            )}
-                            <h2 className="text-2xl font-serif text-white font-bold">{title}</h2>
-                            {subtitle && (
-                                <p className="text-sm text-slate-400 mt-1">{subtitle}</p>
-                            )}
-                        </div>
+                        {/* Title overlay (view mode) */}
+                        {!isEditing && (
+                            <div className="absolute bottom-0 left-0 right-0 p-6">
+                                {badge && (
+                                    <span className={clsx(
+                                        "inline-block px-2 py-1 rounded border text-[10px] font-mono font-bold uppercase mb-2",
+                                        badgeColors[badgeColor]
+                                    )}>
+                                        {badge}
+                                    </span>
+                                )}
+                                <h2 className="text-2xl font-serif text-white font-bold">{initialTitle}</h2>
+                                {initialSubtitle && (
+                                    <p className="text-sm text-slate-400 mt-1">{initialSubtitle}</p>
+                                )}
+                            </div>
+                        )}
                     </div>
 
                     {/* Content */}
                     <div className="p-6">
-                        {summary && (
-                            <p className="text-slate-300 leading-relaxed mb-6">{summary}</p>
+                        {isEditing ? (
+                            /* ═══════════════════════════════════════
+                               EDIT MODE
+                            ═══════════════════════════════════════ */
+                            <div className="space-y-4">
+                                {/* Title */}
+                                <div>
+                                    <label className="block text-xs font-mono text-slate-500 uppercase mb-2">Title</label>
+                                    <input
+                                        type="text"
+                                        value={editTitle}
+                                        onChange={(e) => setEditTitle(e.target.value)}
+                                        className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white focus:border-emerald-500/50 focus:outline-none"
+                                    />
+                                </div>
+
+                                {/* Subtitle */}
+                                <div>
+                                    <label className="block text-xs font-mono text-slate-500 uppercase mb-2">Subtitle</label>
+                                    <input
+                                        type="text"
+                                        value={editSubtitle}
+                                        onChange={(e) => setEditSubtitle(e.target.value)}
+                                        placeholder="Episode subtitle..."
+                                        className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white placeholder-slate-600 focus:border-emerald-500/50 focus:outline-none"
+                                    />
+                                </div>
+
+                                {/* Cover Image URL */}
+                                <div>
+                                    <label className="block text-xs font-mono text-slate-500 uppercase mb-2">Cover Image URL</label>
+                                    <input
+                                        type="url"
+                                        value={editCoverImage}
+                                        onChange={(e) => setEditCoverImage(e.target.value)}
+                                        placeholder="https://res.cloudinary.com/..."
+                                        className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white placeholder-slate-600 focus:border-emerald-500/50 focus:outline-none font-mono text-xs"
+                                    />
+                                    {editCoverImage && (
+                                        <div className="mt-2 h-24 rounded-lg overflow-hidden bg-slate-800">
+                                            <img
+                                                src={editCoverImage}
+                                                alt="Preview"
+                                                className="w-full h-full object-cover"
+                                                onError={(e) => (e.currentTarget.style.display = 'none')}
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Stratum Dropdown */}
+                                <div>
+                                    <label className="block text-xs font-mono text-slate-500 uppercase mb-2">Stratum (Column)</label>
+                                    <select
+                                        value={editStratum}
+                                        onChange={(e) => setEditStratum(e.target.value)}
+                                        className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white focus:border-emerald-500/50 focus:outline-none appearance-none cursor-pointer"
+                                    >
+                                        <option value="signal" className="bg-slate-900">Signal (Green)</option>
+                                        <option value="myth" className="bg-slate-900">Myth (Purple)</option>
+                                        <option value="reflection" className="bg-slate-900">Reflection (Blue)</option>
+                                    </select>
+                                </div>
+
+                                {/* Save/Cancel Buttons */}
+                                <div className="flex gap-3 pt-4">
+                                    <button
+                                        onClick={handleSave}
+                                        disabled={isSaving}
+                                        className="flex-1 px-4 py-3 bg-emerald-600 hover:bg-emerald-500 disabled:bg-emerald-800 disabled:cursor-not-allowed text-white rounded-lg text-xs font-bold uppercase tracking-wider transition-colors"
+                                    >
+                                        {isSaving ? 'Saving...' : 'Save Changes'}
+                                    </button>
+                                    <button
+                                        onClick={() => setIsEditing(false)}
+                                        className="px-4 py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg text-xs font-bold uppercase tracking-wider transition-colors"
+                                    >
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            /* ═══════════════════════════════════════
+                               VIEW MODE
+                            ═══════════════════════════════════════ */
+                            <>
+                                {summary && (
+                                    <p className="text-slate-300 leading-relaxed mb-6">{summary}</p>
+                                )}
+                                {editable ? (
+                                    <div className="flex gap-3">
+                                        <button
+                                            onClick={() => setIsEditing(true)}
+                                            className="flex-1 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-bold uppercase tracking-wider transition-colors"
+                                        >
+                                            Edit
+                                        </button>
+                                        <button
+                                            onClick={handleClose}
+                                            className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded text-xs font-bold uppercase tracking-wider transition-colors"
+                                        >
+                                            Close
+                                        </button>
+                                    </div>
+                                ) : (
+                                    children
+                                )}
+                            </>
                         )}
-                        {children}
                     </div>
                 </div>
             </div>
