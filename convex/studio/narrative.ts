@@ -18,7 +18,7 @@ export const generateEpisode = action({
         }
 
         const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const model = genAI.getGenerativeModel({ model: "models/gemini-3-flash-preview" });
 
         // 1. Define Persona Prompts (Strictly from Canon)
         let systemPrompt = "";
@@ -98,9 +98,11 @@ export const generateEpisode = action({
                 voice: args.voice,
                 stratum: voiceToStratum[args.voice] ?? "signal"
             };
-        } catch (e) {
-            console.error("Gemini Generation Error:", e);
-            throw new Error("Failed to generate narrative from the spectrum.");
+        } catch (e: any) {
+            const errorMessage = e?.message || e?.toString() || "Unknown error";
+            console.error("Gemini Generation Error:", errorMessage);
+            console.error("Full error:", JSON.stringify(e, null, 2));
+            throw new Error(`Failed to generate narrative: ${errorMessage}`);
         }
     },
 });
