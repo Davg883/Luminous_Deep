@@ -38,15 +38,16 @@ export default function EpisodeCard({ signal }: EpisodeCardProps) {
                 <div className="absolute inset-0 p-6 flex flex-col justify-end">
 
                     {/* METADATA (Top Right) */}
-                    <div className="absolute top-4 right-4 flex gap-2">
+                    {/* METADATA (Top Right) */}
+                    <div className="absolute top-4 right-4 flex flex-col items-end gap-2">
                         {isLocked && (
-                            <div className="p-2 bg-rose-500/20 backdrop-blur-md rounded-full border border-rose-500/30 text-rose-400">
-                                <Lock className="w-4 h-4" />
+                            <div className="p-2 bg-rose-500/20 backdrop-blur-md rounded-full border border-rose-500/30 text-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.3)]">
+                                <Lock className="w-3 h-3" />
                             </div>
                         )}
                         {isCompleted && (
-                            <div className="p-2 bg-emerald-500/20 backdrop-blur-md rounded-full border border-emerald-500/30 text-emerald-400">
-                                <span className="text-xs font-mono font-bold">✓</span>
+                            <div className="px-2 py-1 bg-emerald-500/20 backdrop-blur-md rounded border border-emerald-500/30 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+                                <span className="text-[9px] font-mono font-bold tracking-widest uppercase">Decrypted</span>
                             </div>
                         )}
                     </div>

@@ -1,4 +1,4 @@
-import { query } from "./_generated/server";
+import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 
 export const getLibraryState = query({
@@ -7,29 +7,11 @@ export const getLibraryState = query({
         const identity = await ctx.auth.getUserIdentity();
         const userId = identity?.tokenIdentifier;
 
-        // 1. Fetch all signals sorted by Season/Episode
+        // 1. Fetch all signals
+        // We fetch all because we need to categorize them
         const signals = await ctx.db
             .query("signals")
-            .withIndex("by_season_episode")
-            .order("desc") // Newest first, usually. But for "Next Episode", ascending might be easier logic. 
-            // Actually "Netflix style" usually shows newest "released" but you play in order.
-            // Let's sort ASCending to determine the "next up". 
-            // Wait, the previous listSignals was desc. 
-            // For determining the "Hero" (next to watch), we need them in chronological order.
             .collect();
-
-        // Sort them just in case index order isn't perfect for multi-season
-        // (Composite index handles it but let's be safe on the array manipulation)
-        // Actually .order("asc") on by_season_episode is perfect: S0 E1, S0 E2, ...
-        // Let's re-query or just reverse if needed. 
-        // PROMPT SAYS: "Identify the 'Hero Signal' (the first signal where isCompleted is false)."
-        // This implies chronological order (Start at Ep 1).
-
-        // Let's sort in memory to be sure.
-        const sortedSignals = [...signals].sort((a, b) => {
-            if (a.season !== b.season) return a.season - b.season;
-            return a.episode - b.episode;
-        });
 
         // 2. Fetch User Progress
         let userProgressMap = new Map();
@@ -44,37 +26,85 @@ export const getLibraryState = query({
             }
         }
 
-        // 3. Identify Hero Signal
-        let heroSignal = null;
-        let nextIndex = 0;
+        // 3. Enrich Signals with Progress
+        const enrichedSignals = signals.map(sig => ({
+            ...sig,
+            userProgress: userProgressMap.get(sig._id) || null
+        }));
 
-        for (let i = 0; i < sortedSignals.length; i++) {
-            const sig = sortedSignals[i];
-            const progress = userProgressMap.get(sig._id);
-            const isCompleted = progress?.isCompleted ?? false;
+        // 4. Categorize
+        // Myths
+        const myths = enrichedSignals
+            .filter(s => s.stratum === "myth")
+            .sort((a, b) => (a.releaseDate || 0) - (b.releaseDate || 0)); // Chronological
 
-            if (!isCompleted) {
-                heroSignal = sig;
-                nextIndex = i;
-                break;
+        // Season Zero (stratum === 'signal' OR undefined, and season === 0)
+        const seasonZero = enrichedSignals
+            .filter(s => ((s.stratum === "signal" || !s.stratum) && s.season === 0))
+            .sort((a, b) => a.episode - b.episode);
+
+        // Reflections
+        const reflections = enrichedSignals
+            .filter(s => s.stratum === "reflection")
+            .sort((a, b) => (a.releaseDate || 0) - (b.releaseDate || 0));
+
+        // 5. Determine "Continue Reading"
+        // The most recent signal the user has opened (lastReadAt) but not completed.
+        let continueReading = null;
+        if (userId) {
+            const inProgress = enrichedSignals
+                .filter(s => s.userProgress && !s.userProgress.isCompleted)
+                // Sort by lastReadAt descending (newest first)
+                .sort((a, b) => (b.userProgress?.lastReadAt || 0) - (a.userProgress?.lastReadAt || 0));
+
+            if (inProgress.length > 0) {
+                continueReading = inProgress[0];
             }
         }
 
-        // If all completed, hero is the last one (or maybe a "season finish" state? For now, last one).
-        if (!heroSignal && sortedSignals.length > 0) {
-            heroSignal = sortedSignals[sortedSignals.length - 1];
-        }
-
-        // 4. Return State
+        // 6. Return State
         return {
-            heroSignal: heroSignal ? {
-                ...heroSignal,
-                userProgress: userProgressMap.get(heroSignal._id) || null
-            } : null,
-            signals: sortedSignals.map(sig => ({
-                ...sig,
-                userProgress: userProgressMap.get(sig._id) || null
-            }))
+            continueReading,
+            myths,
+            seasonZero,
+            reflections
         };
+    },
+});
+
+export const saveProgress = mutation({
+    args: {
+        signalId: v.id("signals"),
+        progress: v.number(), // 0-100
+        isCompleted: v.boolean(),
+    },
+    handler: async (ctx, args) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) return; // Silent fail if not logged in
+
+        const userId = identity.tokenIdentifier;
+        const now = Date.now();
+
+        // Check for existing record
+        const existing = await ctx.db
+            .query("user_progress")
+            .withIndex("by_user_signal", (q) => q.eq("userId", userId).eq("signalId", args.signalId))
+            .first();
+
+        if (existing) {
+            await ctx.db.patch(existing._id, {
+                progress: args.progress,
+                isCompleted: args.isCompleted ? true : existing.isCompleted, // Never un-complete
+                lastReadAt: now,
+            });
+        } else {
+            await ctx.db.insert("user_progress", {
+                userId,
+                signalId: args.signalId,
+                progress: args.progress,
+                isCompleted: args.isCompleted,
+                lastReadAt: now,
+            });
+        }
     },
 });

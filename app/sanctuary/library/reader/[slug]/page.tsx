@@ -1,17 +1,91 @@
 "use client";
 
-import { useQuery } from "convex/react";
+import { useRef, useEffect, useState, useMemo } from "react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
+import Link from 'next/link';
 import GlitchGate from "@/components/narrative/GlitchGate";
-import { Loader2, ChevronRight } from "lucide-react";
+import { Loader2, ChevronRight, Clock, ArrowLeft } from "lucide-react";
 
 export default function SignalReaderPage() {
     const params = useParams();
+    const router = useRouter();
     // Ensure slug is a string
     const slug = typeof params?.slug === 'string' ? params.slug : null;
 
+    // 1. Fetch Data
     const signal = useQuery(api.public.signals.getSignal, slug ? { slug } : "skip");
+    const libraryState = useQuery(api.library.getLibraryState);
+    const saveProgress = useMutation(api.library.saveProgress);
+
+    // 2. State
+    const [progress, setProgress] = useState(0);
+    const [isCompleted, setIsCompleted] = useState(false);
+    const containerRef = useRef<HTMLElement>(null);
+
+    // 3. Derived Logic: Read Time
+    const readTime = useMemo(() => {
+        if (!signal?.content) return 0;
+        const wordCount = signal.content.split(/\s+/).length;
+        return Math.ceil(wordCount / 225);
+    }, [signal?.content]);
+
+    // 4. Derived Logic: Find Next Episode
+    const nextEpisode = useMemo(() => {
+        if (!signal || !libraryState) return null;
+
+        // Find current context (Is it a Myth? Signal? Reflection?)
+        let contextList = [];
+        if (signal.stratum === "myth") contextList = libraryState.myths;
+        else if (signal.stratum === "reflection") contextList = libraryState.reflections;
+        else contextList = libraryState.seasonZero; // Default to Season 0
+
+        // Find index
+        const currentIndex = contextList.findIndex(s => s._id === signal._id);
+
+        // Return next if exists
+        if (currentIndex !== -1 && currentIndex < contextList.length - 1) {
+            return contextList[currentIndex + 1];
+        }
+        return null;
+    }, [signal, libraryState]);
+
+    // 5. Scroll Tracker
+    useEffect(() => {
+        const handleScroll = () => {
+            const totalHeight = document.documentElement.scrollHeight - window.innerHeight;
+            const scrollPosition = window.scrollY;
+
+            // Calculate percentage (0-100)
+            const currentProgress = Math.min(100, Math.max(0, (scrollPosition / totalHeight) * 100));
+            setProgress(currentProgress);
+
+            // Check completion (90% read counts as done)
+            if (currentProgress > 90 && !isCompleted) {
+                setIsCompleted(true);
+            }
+        };
+
+        window.addEventListener("scroll", handleScroll);
+        return () => window.removeEventListener("scroll", handleScroll);
+    }, [isCompleted]);
+
+    // 6. Save Progress Throttled
+    useEffect(() => {
+        if (!signal) return;
+
+        const timeout = setTimeout(() => {
+            saveProgress({
+                signalId: signal._id,
+                progress: Math.round(progress),
+                isCompleted: isCompleted
+            });
+        }, 1000); // Debounce saves
+
+        return () => clearTimeout(timeout);
+    }, [progress, isCompleted, signal]);
+
 
     if (signal === undefined) {
         return (
@@ -33,25 +107,31 @@ export default function SignalReaderPage() {
                     <div className="text-[10px] bg-stone-900 p-2 rounded text-stone-500">
                         Target: {slug}
                     </div>
-                    <a href="/sanctuary/library/reader" className="text-xs text-emerald-600 hover:text-emerald-500 underline">
+                    <Link href="/sanctuary/library" className="text-xs text-emerald-600 hover:text-emerald-500 underline">
                         Return to Archive
-                    </a>
+                    </Link>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-stone-950 text-stone-300 font-serif selection:bg-emerald-900/30 selection:text-emerald-50">
-            {/* Cinematic Header */}
-            <div className="sticky top-0 z-40 bg-stone-950/80 backdrop-blur-md border-b border-white/5 px-6 py-3">
-                <div className="max-w-prose mx-auto flex justify-between items-center font-mono text-[10px] text-emerald-600/60 uppercase tracking-widest">
-                    <span>// INCOMING TRANSMISSION...</span>
-                    <span>SIGNAL STRENGTH: 84%</span>
+        <div className="min-h-screen bg-stone-950 text-stone-300 font-serif selection:bg-emerald-900/30 selection:text-emerald-50 pb-32">
+
+            {/* Sticky Header */}
+            <div className="sticky top-0 z-40 bg-stone-950/80 backdrop-blur-md border-b border-white/5 px-6 py-3 transition-all duration-500">
+                <div className="max-w-4xl mx-auto flex justify-between items-center font-mono text-[10px] uppercase tracking-widest text-emerald-600/60">
+                    <Link href="/sanctuary/library" className="hover:text-emerald-400 flex items-center gap-2 transition-colors">
+                        <ArrowLeft className="w-3 h-3" /> ARCHIVE
+                    </Link>
+                    <span className="flex items-center gap-2">
+                        <Clock className="w-3 h-3" />
+                        DURATION: {readTime} MIN
+                    </span>
                 </div>
             </div>
 
-            <main className="max-w-prose mx-auto px-6 py-20">
+            <main className="max-w-prose mx-auto px-6 py-20" ref={containerRef}>
                 <article>
                     <header className="mb-12 text-center">
                         <div className="font-mono text-xs text-stone-500 mb-4 uppercase tracking-[0.2em]">
@@ -100,21 +180,38 @@ export default function SignalReaderPage() {
                     {/* CENTER: Progress Bar */}
                     <div className="flex-1 max-w-md flex flex-col gap-2 group cursor-pointer">
                         <div className="flex justify-between text-[9px] font-mono text-stone-600 uppercase tracking-wider group-hover:text-emerald-500/80 transition-colors">
-                            <span>Signal Integrity</span>
-                            <span>34%</span>
+                            <span>Signal Integrity {isCompleted && "(DECRYPTED)"}</span>
+                            <span>{Math.round(progress)}%</span>
                         </div>
                         <div className="h-1 bg-stone-800 rounded-full overflow-hidden">
-                            <div className="h-full bg-emerald-500/50 w-[34%] shadow-[0_0_10px_rgba(16,185,129,0.2)]" />
+                            <div
+                                className={`h-full transition-all duration-300 ${isCompleted ? 'bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.5)]' : 'bg-emerald-600/50'}`}
+                                style={{ width: `${progress}%` }}
+                            />
                         </div>
                     </div>
 
                     {/* RIGHT: Next Action */}
-                    <button className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/5 rounded transition-colors group">
-                        <span className="font-mono text-[10px] text-stone-400 uppercase tracking-widest group-hover:text-white">
-                            Next Signal
-                        </span>
-                        <ChevronRight className="w-4 h-4 text-stone-500 group-hover:text-emerald-400 transition-colors" />
-                    </button>
+                    {nextEpisode ? (
+                        <Link
+                            href={`/sanctuary/library/reader/${nextEpisode.slug}`}
+                            className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-emerald-900/30 border border-white/5 hover:border-emerald-500/30 rounded transition-colors group"
+                        >
+                            <span className="font-mono text-[10px] text-stone-400 uppercase tracking-widest group-hover:text-emerald-400">
+                                Next Signal
+                            </span>
+                            <ChevronRight className="w-4 h-4 text-stone-500 group-hover:text-emerald-400 transition-colors" />
+                        </Link>
+                    ) : (
+                        <Link
+                            href="/sanctuary/library"
+                            className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/5 rounded transition-colors group"
+                        >
+                            <span className="font-mono text-[10px] text-stone-400 uppercase tracking-widest group-hover:text-white">
+                                Return to Archive
+                            </span>
+                        </Link>
+                    )}
                 </div>
             </div>
         </div>
