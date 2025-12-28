@@ -449,13 +449,7 @@ export function AudioSovereignControl() {
                         step="0.01"
                         value={volume}
                         onChange={(e) => setVolume(parseFloat(e.target.value))}
-                        className="w-full h-1 bg-white/20 rounded-lg appearance-none cursor-pointer
-                                 [&::-webkit-slider-thumb]:appearance-none 
-                                 [&::-webkit-slider-thumb]:w-3 
-                                 [&::-webkit-slider-thumb]:h-3 
-                                 [&::-webkit-slider-thumb]:rounded-full 
-                                 [&::-webkit-slider-thumb]:bg-white
-                                 [&::-webkit-slider-thumb]:shadow-[0_0_10px_rgba(255,255,255,0.5)]"
+                        className="w-full h-1 bg-white/20 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-[0_0_10px_rgba(255,255,255,0.5)]"
                     />
                 </div>
             </div>
