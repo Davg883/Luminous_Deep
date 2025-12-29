@@ -23,6 +23,7 @@ export default function SeriesPage() {
     const [coverImage, setCoverImage] = useState("");
     const [imagePrompt, setImagePrompt] = useState("");
     const [status, setStatus] = useState("Published");
+    const [sanctuaryAmbientUrl, setSanctuaryAmbientUrl] = useState("");
 
     // Generation State
     const [isGenerating, setIsGenerating] = useState(false);
@@ -38,6 +39,7 @@ export default function SeriesPage() {
                 setCoverImage(series.coverImage);
                 setImagePrompt(series.imagePrompt || "");
                 setStatus(series.status);
+                setSanctuaryAmbientUrl(series.sanctuaryAmbientUrl || "");
             }
         } else {
             // Reset
@@ -47,6 +49,7 @@ export default function SeriesPage() {
             setCoverImage("");
             setImagePrompt("");
             setStatus("Published");
+            setSanctuaryAmbientUrl("");
         }
     }, [selectedId, seriesList]);
 
@@ -59,7 +62,8 @@ export default function SeriesPage() {
                 description,
                 coverImage,
                 status,
-                imagePrompt
+                imagePrompt,
+                sanctuaryAmbientUrl: sanctuaryAmbientUrl || undefined,
             });
         } else {
             const newId = await createSeries({
@@ -249,6 +253,23 @@ export default function SeriesPage() {
                             />
                             <p className="text-xs text-slate-500 italic">
                                 * The Synopsis Engine reads all signals linked to this series to generate this text.
+                            </p>
+                        </div>
+
+                        {/* Sanctuary Ambient Audio */}
+                        <div className="space-y-4 pt-8 border-t border-white/5">
+                            <label className="text-xs font-mono text-slate-500 uppercase flex items-center gap-2">
+                                🔊 Sanctuary Ambient Audio URL
+                            </label>
+                            <input
+                                type="text"
+                                value={sanctuaryAmbientUrl}
+                                onChange={(e) => setSanctuaryAmbientUrl(e.target.value)}
+                                placeholder="https://res.cloudinary.com/... (audio URL that plays while reading)"
+                                className="w-full bg-white/5 border border-white/10 rounded p-3 focus:border-cyan-500/50 focus:outline-none font-mono text-sm text-slate-400"
+                            />
+                            <p className="text-xs text-slate-500 italic">
+                                * This ambient audio will persist across pages while users browse this series in the Sanctuary.
                             </p>
                         </div>
                     </div>

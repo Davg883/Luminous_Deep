@@ -5,8 +5,16 @@ export default defineSchema({
     users: defineTable({
         name: v.string(),
         tokenIdentifier: v.string(),
+        email: v.optional(v.string()),
         role: v.optional(v.union(v.literal("admin"), v.literal("user"))),
-    }).index("by_token", ["tokenIdentifier"]),
+        // Stripe Integration
+        stripeCustomerId: v.optional(v.string()),
+        subscriptionTier: v.optional(v.union(v.literal("free"), v.literal("patron"))),
+        subscriptionStatus: v.optional(v.string()), // e.g. "active", "past_due"
+        subscriptionEnds: v.optional(v.number()),
+    })
+        .index("by_token", ["tokenIdentifier"])
+        .index("by_stripe", ["stripeCustomerId"]),
 
     // ═══════════════════════════════════════════════════════════════
     // CANONICAL OBJECT #1: SPACES (Evolved from scenes)
@@ -224,6 +232,8 @@ export default defineSchema({
         status: v.string(),        // "Published", "Archived"
         // AI Prompts
         imagePrompt: v.optional(v.string()),
+        // Sanctuary Audio: Ambient soundscape that persists while reading
+        sanctuaryAmbientUrl: v.optional(v.string()),
     }).index("by_slug", ["slug"]),
 
     signals: defineTable({
@@ -412,4 +422,15 @@ export default defineSchema({
         .index("by_agent_slug", ["agentId", "slug"])
         .index("by_agent_status", ["agentId", "status"])
         .index("by_status", ["status"]),
+
+    // ═══════════════════════════════════════════════════════════════
+    // WEBHOOK EVENTS — Idempotency Tracking
+    // Prevents double-processing of Stripe/Clerk webhook events
+    // ═══════════════════════════════════════════════════════════════
+    webhook_events: defineTable({
+        eventId: v.string(),
+        type: v.string(),
+        status: v.string(), // "processing" | "processed" | "failed"
+        processedAt: v.number(),
+    }).index("by_event_id", ["eventId"]),
 });

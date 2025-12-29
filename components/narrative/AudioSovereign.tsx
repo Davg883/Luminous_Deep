@@ -24,8 +24,8 @@ interface RoomSoundConfig {
 
 const ROOM_SOUNDSCAPES: Record<string, RoomSoundConfig> = {
     sanctuary: {
-        url: "https://res.cloudinary.com/dptqxjhb8/video/upload/v1735258400/restoration_40hz_hxflz8.mp3",
-        description: "Rain on glass, high-altitude wind, soft sine waves",
+        url: "https://res.cloudinary.com/dptqxjhb8/video/upload/v1766917918/The_sanctory_dn1hxh.wav",
+        description: "The Sanctuary ambient soundscape",
     },
     workshop: {
         url: "https://res.cloudinary.com/dptqxjhb8/video/upload/v1735258400/mechanical_zen_40hz_qw2x9p.mp3",
@@ -84,9 +84,17 @@ export function AudioSovereignProvider({ children }: AudioSovereignProviderProps
     // Navigation
     const pathname = usePathname();
 
-    // Fetch scene data
-    const routeSlug = pathname === "/" ? "home" : (pathname?.split("/").slice(-1)[0] || "home");
-    const scene = useQuery(api.public.scenes.getScene, { slug: routeSlug });
+    // Detect room from URL
+    // Sanctuary paths: /sanctuary/library, /sanctuary/library/reader/*, etc.
+    const isSanctuaryPath = pathname?.startsWith("/sanctuary");
+    const routeSlug = pathname === "/"
+        ? "home"
+        : isSanctuaryPath
+            ? "sanctuary"
+            : (pathname?.split("/").slice(-1)[0] || "home");
+
+    // Fetch scene data (skip for sanctuary since it uses the route-based soundscape)
+    const scene = useQuery(api.public.scenes.getScene, isSanctuaryPath ? "skip" : { slug: routeSlug });
 
     // Determine target audio URL
     const effectiveDomain = scene?.domain || routeSlug;

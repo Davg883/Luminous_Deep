@@ -3,22 +3,41 @@
 import { useRef, useEffect, useState, useMemo, useCallback } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from 'next/link';
 import GlitchGate from "@/components/narrative/GlitchGate";
+import { SignalLost, ProvisioningState } from "@/components/SignalLost";
 import { Loader2, ChevronRight, Clock, ArrowLeft, Volume2, VolumeX, Music } from "lucide-react";
 
 export default function SignalReaderPage() {
     const params = useParams();
     const router = useRouter();
+    const searchParams = useSearchParams();
     // Ensure slug is a string
     const slug = typeof params?.slug === 'string' ? params.slug : null;
 
     // 1. Fetch Data
     const signal = useQuery(api.public.signals.getSignal, slug ? { slug } : "skip");
     const libraryState = useQuery(api.library.getLibraryState);
+    const user = useQuery(api.users.getCurrentUser);
     const completeTransmission = useMutation(api.library.completeTransmission);
     const saveProgress = useMutation(api.library.saveProgress);
+
+    // Access control
+    const isPatron = user?.subscriptionTier === "patron";
+    const isSuccess = searchParams.get("success") === "true";
+
+    // Clear success param after a few seconds (webhook should have processed by then)
+    useEffect(() => {
+        if (isSuccess && !isPatron) {
+            const timeout = setTimeout(() => {
+                // Remove ?success from URL to stop showing provisioning state
+                // The webhook should have updated the user by now
+                router.replace(window.location.pathname);
+            }, 5000); // Wait 5 seconds for webhook
+            return () => clearTimeout(timeout);
+        }
+    }, [isSuccess, isPatron, router]);
 
     // 2. State
     const [progress, setProgress] = useState(0);
@@ -154,8 +173,8 @@ export default function SignalReaderPage() {
                 <button
                     onClick={toggleAudio}
                     className={`fixed top-6 right-6 z-50 p-3 rounded-full backdrop-blur-xl transition-all duration-300 group ${isAudioPlaying
-                            ? 'bg-cyan-500/20 border border-cyan-500/40 shadow-[0_0_20px_rgba(6,182,212,0.3)]'
-                            : 'bg-black/40 border border-white/20 hover:border-cyan-500/30'
+                        ? 'bg-cyan-500/20 border border-cyan-500/40 shadow-[0_0_20px_rgba(6,182,212,0.3)]'
+                        : 'bg-black/40 border border-white/20 hover:border-cyan-500/30'
                         }`}
                     aria-label={isAudioPlaying ? "Mute ambient audio" : "Play ambient audio"}
                 >
@@ -188,9 +207,15 @@ export default function SignalReaderPage() {
             {/* Sticky Header */}
             <div className="sticky top-0 z-40 bg-stone-950/80 backdrop-blur-md border-b border-white/5 px-6 py-3 transition-all duration-500">
                 <div className="max-w-4xl mx-auto flex justify-between items-center font-mono text-[10px] uppercase tracking-widest text-emerald-600/60">
-                    <Link href="/sanctuary/library" className="hover:text-emerald-400 flex items-center gap-2 transition-colors">
-                        <ArrowLeft className="w-3 h-3" /> ARCHIVE
-                    </Link>
+                    <div className="flex items-center gap-4">
+                        <Link href="/sanctuary/library" className="hover:text-emerald-400 flex items-center gap-2 transition-colors">
+                            <ArrowLeft className="w-3 h-3" /> ARCHIVE
+                        </Link>
+                        <span className="text-emerald-900/40">|</span>
+                        <Link href="/" className="hover:text-emerald-400 transition-colors">
+                            MAIN SITE
+                        </Link>
+                    </div>
                     <span className="flex items-center gap-2">
                         <Clock className="w-3 h-3" />
                         [ DECRYPT_TIME: {readTime} MIN ]
@@ -211,11 +236,27 @@ export default function SignalReaderPage() {
                     </header>
 
                     <div className="prose prose-invert prose-stone prose-lg max-w-none">
-                        <GlitchGate
-                            content={signal.content}
-                            isLocked={signal.isLocked}
-                            glitchPoint={signal.glitchPoint}
-                        />
+                        {/* Provisioning state: Payment succeeded but webhook hasn't processed yet */}
+                        {isSuccess && !isPatron ? (
+                            <ProvisioningState />
+                        ) : isPatron ? (
+                            /* Full access for patrons */
+                            <GlitchGate
+                                content={signal.content}
+                                isLocked={false}
+                                glitchPoint={100}
+                            />
+                        ) : (
+                            /* Free users: Show preview + paywall */
+                            <>
+                                <GlitchGate
+                                    content={signal.content}
+                                    isLocked={true}
+                                    glitchPoint={30} // Show first 30% for free
+                                />
+                                <SignalLost />
+                            </>
+                        )}
                     </div>
                 </article>
             </main>

@@ -4,7 +4,7 @@ import React from 'react';
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import Link from 'next/link';
-import { Sparkles, Play, BookOpen } from 'lucide-react';
+import { Sparkles, Play, BookOpen, ChevronLeft } from 'lucide-react';
 
 export default function LibraryPage() {
     const libraryState = useQuery(api.library.getLibraryState);
@@ -28,6 +28,16 @@ export default function LibraryPage() {
 
     return (
         <div className="min-h-screen bg-[#0a0a0f] text-slate-200 p-8 md:p-16 pb-40">
+            {/* Navigation */}
+            <nav className="max-w-7xl mx-auto mb-8">
+                <Link
+                    href="/"
+                    className="inline-flex items-center gap-2 text-xs font-mono text-slate-500 uppercase tracking-widest hover:text-emerald-400 transition-colors"
+                >
+                    <ChevronLeft className="w-3 h-3" /> Return to Main Site
+                </Link>
+            </nav>
+
             <header className="mb-20 text-center">
                 <h1 className="text-4xl md:text-6xl font-serif text-white font-bold mb-4 tracking-tight">
                     The Sanctuary

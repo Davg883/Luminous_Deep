@@ -49,6 +49,7 @@ export const updateSeries = mutation({
         tags: v.optional(v.array(v.string())),
         status: v.optional(v.string()),
         imagePrompt: v.optional(v.string()),
+        sanctuaryAmbientUrl: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
         const { id, ...updates } = args;

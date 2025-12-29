@@ -50,7 +50,7 @@ export default function SeriesDetailPage() {
             {/* ════════════════════════════════════════════════════
                 HERO SECTION
             ════════════════════════════════════════════════════ */}
-            <div className="relative w-full h-[70vh] max-h-[800px] flex items-center overflow-hidden">
+            <div className="relative w-full min-h-[80vh] flex items-start overflow-hidden py-12">
                 {/* Background Hero Image */}
                 <div className="absolute inset-0 z-0">
                     <img
@@ -80,15 +80,21 @@ export default function SeriesDetailPage() {
 
                         {/* Text */}
                         <div className="md:col-span-8 lg:col-span-7">
-                            <Link href="/sanctuary/library" className="inline-flex items-center gap-2 text-xs font-mono text-slate-500 uppercase tracking-widest mb-6 hover:text-emerald-400 transition-colors">
-                                <ChevronLeft className="w-3 h-3" /> Back to Archive
-                            </Link>
+                            <div className="flex items-center gap-6 mb-6">
+                                <Link href="/sanctuary/library" className="inline-flex items-center gap-2 text-xs font-mono text-slate-500 uppercase tracking-widest hover:text-emerald-400 transition-colors">
+                                    <ChevronLeft className="w-3 h-3" /> Back to Archive
+                                </Link>
+                                <span className="text-slate-700">|</span>
+                                <Link href="/" className="inline-flex items-center gap-2 text-xs font-mono text-slate-500 uppercase tracking-widest hover:text-emerald-400 transition-colors">
+                                    Return to Main Site
+                                </Link>
+                            </div>
 
                             <h1 className="text-5xl md:text-7xl font-serif text-white font-bold leading-[0.9] mb-8">
                                 {series.title}
                             </h1>
 
-                            <div className="prose prose-invert prose-lg text-slate-400 mb-10 max-w-2xl leading-relaxed">
+                            <div className="prose prose-invert prose-lg text-slate-400 mb-10 max-w-2xl leading-relaxed max-h-[40vh] overflow-y-auto pr-4 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
                                 {series.description ? (
                                     series.description.split('\n').map((p: string, i: number) => (
                                         <p key={i} className="mb-4 text-lg">{p}</p>

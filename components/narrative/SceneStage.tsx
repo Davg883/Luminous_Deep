@@ -1,8 +1,10 @@
 "use client";
 
 import { motion, useAnimation } from "framer-motion";
-import { ReactNode, useRef, useEffect } from "react";
+import { ReactNode, useRef, useEffect, useState } from "react";
 import Image from "next/image";
+import { useDevicePan } from "@/hooks/useDevicePan";
+import { ImmersionButton } from "@/components/ui/ImmersionButton";
 
 interface SceneStageProps {
     mediaUrl?: string;
@@ -11,6 +13,8 @@ interface SceneStageProps {
     playbackSpeed?: number;
     shouldLoop?: boolean; // false = cinematic transition (play once, hold on final frame)
     glimpseUrl?: string; // The Ghost in the Glass
+    /** Enable gyroscope pan effect (default: true) */
+    enablePan?: boolean;
 }
 
 export default function SceneStage({
@@ -19,11 +23,31 @@ export default function SceneStage({
     isFocused = false,
     playbackSpeed = 1.0,
     shouldLoop = true,
-    glimpseUrl
+    glimpseUrl,
+    enablePan = true,
 }: SceneStageProps) {
     const videoRef = useRef<HTMLVideoElement>(null);
-
     const glimpseControls = useAnimation();
+
+    // Device pan effect (gyroscope on mobile, mouse parallax on desktop)
+    const {
+        xPercent,
+        isMobile,
+        requiresPermission,
+        hasPermission,
+        requestPermission,
+    } = useDevicePan({
+        maxTilt: 30,
+        maxPan: 15,
+        stiffness: 50,
+        damping: 20,
+    });
+
+    // Track if this is an image (to apply pan effect)
+    const isImage = mediaUrl && !mediaUrl.match(/\.(mp4|webm|mov)$/i);
+
+    // Should we show the immersion button? (iOS mobile without permission)
+    const showImmersionButton = enablePan && isMobile && requiresPermission && !hasPermission;
 
     useEffect(() => {
         if (videoRef.current) {
@@ -66,8 +90,15 @@ export default function SceneStage({
 
     return (
         <div className="relative w-full h-screen overflow-hidden bg-stone-900 border-b border-driftwood/20">
-            {/* Background with slight parallax/pan effect */}
-            {/* Background Container */}
+            {/* iOS Immersion Permission Button */}
+            {showImmersionButton && (
+                <ImmersionButton
+                    requestPermission={requestPermission}
+                    hasPermission={hasPermission}
+                />
+            )}
+
+            {/* Background with gyroscope/parallax pan effect */}
             <motion.div
                 className="absolute inset-0 w-full h-full -z-0"
                 animate={{
@@ -75,11 +106,18 @@ export default function SceneStage({
                 }}
                 transition={{ duration: 1, ease: "easeInOut" }}
             >
-                {/* Media Handling */}
-                <div className="absolute inset-0">
+                {/* Media Container - wider on mobile to allow panning */}
+                <motion.div
+                    className={`absolute inset-0 ${enablePan && isMobile
+                            ? "w-[150vw] left-[-25vw]"
+                            : "w-full"
+                        } h-full`}
+                    style={enablePan ? { x: xPercent } : undefined}
+                >
                     {!mediaUrl ? (
                         <div className="w-full h-full bg-slate-900 animate-pulse" />
                     ) : mediaUrl.match(/\.(mp4|webm|mov)$/i) ? (
+                        // VIDEO: Apply pan effect to video container
                         <video
                             key={mediaUrl}
                             ref={videoRef}
@@ -92,11 +130,13 @@ export default function SceneStage({
                             className="w-full h-full object-cover opacity-90"
                         />
                     ) : (
+                        // IMAGE: Apply pan + subtle drift animation
                         <motion.div
                             key={mediaUrl}
-                            initial={{ scale: 1.1, x: 0, y: 0 }}
+                            initial={{ scale: 1.1 }}
                             animate={{
-                                x: [0, -15, 10, -5, 0],
+                                // Subtle drift animation (reduced when pan is active on mobile)
+                                x: (enablePan && isMobile && hasPermission) ? 0 : [0, -15, 10, -5, 0],
                                 y: [0, 10, -10, 5, 0],
                                 rotate: [0, -0.5, 0.5, -0.25, 0]
                             }}
@@ -115,6 +155,7 @@ export default function SceneStage({
                                 fill
                                 className="object-cover opacity-90"
                                 priority
+                                sizes={enablePan && isMobile ? "150vw" : "100vw"}
                             />
                         </motion.div>
                     )}
@@ -147,9 +188,9 @@ export default function SceneStage({
                         </motion.div>
                     )}
 
-                    {/* Overlay to ensure text legibility depending on domain later */}
+                    {/* Overlay to ensure text legibility */}
                     <div className="absolute inset-0 bg-black/10" />
-                </div>
+                </motion.div>
             </motion.div>
 
             {/* Interactive Layer */}
