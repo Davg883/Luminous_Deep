@@ -1,18 +1,14 @@
 "use client";
 
-import React, { useRef, useState, useEffect } from 'react';
+import React from 'react';
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import Link from 'next/link';
-import { Play, ChevronRight, ChevronLeft, Sparkles, Clock, Lock } from 'lucide-react';
-import { motion } from 'framer-motion';
-import clsx from 'clsx';
-import EpisodeCard from "@/components/library/EpisodeCard";
+import { Sparkles, Play, BookOpen } from 'lucide-react';
 
 export default function LibraryPage() {
     const libraryState = useQuery(api.library.getLibraryState);
 
-    // Initial loading state
     if (libraryState === undefined) {
         return (
             <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
@@ -21,196 +17,142 @@ export default function LibraryPage() {
                         <Sparkles className="w-12 h-12 text-emerald-500/50 mx-auto" />
                     </div>
                     <span className="text-emerald-900/50 font-mono text-xs uppercase tracking-widest">
-                        DECRYPTING ARCHIVE...
+                        ACCESSING ARCHIVE INDEX...
                     </span>
                 </div>
             </div>
         );
     }
 
-    const { continueReading, myths, seasonZero, reflections } = libraryState;
+    const { myths, series } = libraryState;
 
     return (
-        <div className="min-h-screen bg-[#0a0a0f] text-slate-200 overflow-x-hidden font-sans selection:bg-emerald-900/30 selection:text-emerald-50 pb-32">
+        <div className="min-h-screen bg-[#0a0a0f] text-slate-200 p-8 md:p-16 pb-40">
+            <header className="mb-20 text-center">
+                <h1 className="text-4xl md:text-6xl font-serif text-white font-bold mb-4 tracking-tight">
+                    The Sanctuary
+                </h1>
+                <p className="text-slate-500 font-mono text-xs uppercase tracking-widest">
+                    Archive Interface v2.0 // Authorized Personnel Only
+                </p>
+            </header>
 
-            {/* ════════════════════════════════════════════════════
-                ROW 1: CONTINUE TRANSMISSION (The Hook)
-            ════════════════════════════════════════════════════ */}
-            {continueReading && (
-                <div className="relative w-full h-[60vh] max-h-[600px] flex items-center overflow-hidden">
-                    {/* Background Hero Image */}
-                    <div className="absolute inset-0 z-0">
-                        <img
-                            src={continueReading.coverImage || "https://res.cloudinary.com/dptqxjhb8/image/upload/v1735000000/default_cover_xk2m3n.jpg"}
-                            alt="Background"
-                            className="w-full h-full object-cover opacity-40 blur-sm scale-110"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0f] via-[#0a0a0f]/80 to-transparent" />
-                        <div className="absolute inset-0 bg-gradient-to-r from-[#0a0a0f] via-[#0a0a0f]/60 to-transparent" />
+            <div className="max-w-7xl mx-auto space-y-20">
+
+                {/* ROW 1: FOUNDATIONAL MYTHS */}
+                <section>
+                    <div className="flex items-center gap-4 mb-8">
+                        <div className="h-px flex-1 bg-white/10" />
+                        <h2 className="font-mono text-xs text-emerald-500 uppercase tracking-[0.2em]">
+                            Foundational Myths
+                        </h2>
+                        <div className="h-px flex-1 bg-white/10" />
                     </div>
 
-                    <div className="relative z-10 w-full max-w-[1400px] mx-auto px-6 md:px-12 flex items-end pb-12">
-                        <div className="max-w-2xl">
-                            <span className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full text-emerald-400 text-[10px] font-mono font-bold uppercase tracking-widest mb-4">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                                Resume Transmission
-                            </span>
-
-                            <h1 className="text-4xl md:text-6xl font-serif text-white font-bold leading-tight mb-4">
-                                {continueReading.title}
-                            </h1>
-
-                            <p className="text-slate-400 text-lg mb-8 line-clamp-2 max-w-xl">
-                                {continueReading.summaryShort || continueReading.summaryLong || "The signal awaits your return. Decryption is incomplete."}
-                            </p>
-
-                            <div className="flex items-center gap-6">
-                                <Link
-                                    href={`/sanctuary/library/reader/${continueReading.slug}`}
-                                    className="flex items-center gap-3 px-8 py-4 bg-white text-black hover:bg-emerald-400 transition-colors rounded font-bold uppercase tracking-wider text-sm shadow-[0_0_30px_rgba(255,255,255,0.2)] hover:shadow-[0_0_40px_rgba(16,185,129,0.4)]"
-                                >
-                                    <Play className="w-5 h-5 fill-current" />
-                                    Resume S{continueReading.season} E{continueReading.episode}
-                                </Link>
-
-                                <div className="flex flex-col gap-1">
-                                    <div className="flex items-center gap-2 text-xs font-mono text-slate-500 uppercase tracking-wider">
-                                        <span>Decryption Progress</span>
-                                        <span className="text-emerald-500">{Math.round(continueReading.userProgress?.progress || 0)}%</span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                        {myths.map((myth) => (
+                            <Link
+                                key={myth._id}
+                                href={`/sanctuary/library/reader/${myth.slug}`}
+                                className="group relative block aspect-[4/3] bg-slate-900 rounded-lg overflow-hidden border border-white/5 transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl hover:border-emerald-500/30"
+                            >
+                                {myth.coverImage ? (
+                                    <img
+                                        src={myth.coverImage}
+                                        alt={myth.title}
+                                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 opacity-60 group-hover:opacity-100"
+                                    />
+                                ) : (
+                                    <div className="absolute inset-0 flex items-center justify-center bg-slate-800">
+                                        <div className="absolute inset-0 bg-[url('https://res.cloudinary.com/dptqxjhb8/image/upload/v1735258900/static_noise_placeholder.png')] opacity-20 mix-blend-overlay" />
+                                        <span className="text-slate-600 font-mono text-xs relative z-10">SYSTEM STATIC</span>
                                     </div>
-                                    <div className="w-32 h-1 bg-slate-800 rounded-full overflow-hidden">
-                                        <div
-                                            className="h-full bg-emerald-500"
-                                            style={{ width: `${continueReading.userProgress?.progress || 0}%` }}
-                                        />
+                                )}
+                                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent opacity-90 transition-opacity" />
+
+                                <div className="absolute inset-0 p-6 flex flex-col justify-end">
+                                    <div className="font-mono text-[10px] text-emerald-500 mb-2 opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0 transition-all duration-500">
+                                        MYTHOLOGY
+                                    </div>
+                                    <h3 className="text-xl font-serif font-bold text-white mb-2 leading-tight">
+                                        {myth.title}
+                                    </h3>
+                                    <div className="flex items-center gap-2 text-[10px] text-slate-400 font-mono uppercase tracking-wider group-hover:text-emerald-400 transition-colors">
+                                        <BookOpen className="w-3 h-3" />
+                                        Read Protocol
                                     </div>
                                 </div>
+                            </Link>
+                        ))}
+                        {myths.length === 0 && (
+                            <div className="col-span-full text-center py-12 border border-dashed border-white/10 rounded-lg">
+                                <span className="text-slate-600 font-mono text-xs">NO MYTHS DECRYPTED</span>
                             </div>
-                        </div>
+                        )}
                     </div>
-                </div>
-            )}
+                </section>
 
-            {/* SPACER if no hero */}
-            {!continueReading && <div className="h-24" />}
-
-            <div className="space-y-12 relative z-20 -mt-10 px-6 md:px-12">
-
-                {/* ════════════════════════════════════════════════════
-                    ROW 2: FOUNDATIONAL MYTHS
-                ════════════════════════════════════════════════════ */}
-                <ContentRow
-                    title="Foundational Myths"
-                    items={myths}
-                    iconColor="text-violet-500"
-                />
-
-                {/* ════════════════════════════════════════════════════
-                    ROW 3: SEASON ZERO (The Buried Protocol)
-                ════════════════════════════════════════════════════ */}
-                <ContentRow
-                    title="Season Zero: The Buried Protocol"
-                    items={seasonZero}
-                    iconColor="text-emerald-500"
-                />
-
-                {/* ════════════════════════════════════════════════════
-                    ROW 4: REFLECTIONS
-                ════════════════════════════════════════════════════ */}
-                <ContentRow
-                    title="Reflections: Eleanor's Archive"
-                    items={reflections}
-                    iconColor="text-blue-500"
-                />
-
-            </div>
-        </div>
-    );
-}
-
-// ═══════════════════════════════════════════════════════════════
-// HORIZONTAL ROW COMPONENT
-// ═══════════════════════════════════════════════════════════════
-
-interface ContentRowProps {
-    title: string;
-    items: any[];
-    iconColor?: string;
-}
-
-function ContentRow({ title, items, iconColor = "text-emerald-500" }: ContentRowProps) {
-    const rowRef = useRef<HTMLDivElement>(null);
-    const [showLeftArrow, setShowLeftArrow] = useState(false);
-    const [showRightArrow, setShowRightArrow] = useState(true);
-
-    const checkScroll = () => {
-        if (!rowRef.current) return;
-        const { scrollLeft, scrollWidth, clientWidth } = rowRef.current;
-        setShowLeftArrow(scrollLeft > 0);
-        setShowRightArrow(scrollLeft < scrollWidth - clientWidth - 10);
-    };
-
-    useEffect(() => {
-        checkScroll();
-        window.addEventListener('resize', checkScroll);
-        return () => window.removeEventListener('resize', checkScroll);
-    }, [items]);
-
-    const scroll = (direction: 'left' | 'right') => {
-        if (!rowRef.current) return;
-        const scrollAmount = window.innerWidth * 0.7; // Scroll 70% of screen width
-        rowRef.current.scrollBy({
-            left: direction === 'left' ? -scrollAmount : scrollAmount,
-            behavior: 'smooth'
-        });
-    };
-
-    if (items.length === 0) return null;
-
-    return (
-        <div className="relative group/row">
-            {/* Header */}
-            <div className="flex items-center gap-3 mb-4 group-hover/row:translate-x-1 transition-transform duration-300">
-                <span className={clsx("text-lg font-bold font-mono", iconColor)}>N</span>
-                <h3 className="text-xl md:text-2xl font-serif text-slate-200 font-bold tracking-tight">
-                    {title}
-                </h3>
-            </div>
-
-            {/* Scroll Buttons - Visible on Row Hover */}
-            {showLeftArrow && (
-                <button
-                    onClick={() => scroll('left')}
-                    className="absolute left-0 top-[55%] -translate-y-1/2 z-30 p-3 bg-black/50 backdrop-blur-sm border border-white/10 rounded-full hover:bg-emerald-600 hover:text-white hover:border-emerald-500 text-white opacity-0 group-hover/row:opacity-100 transition-all duration-300 hidden md:block"
-                >
-                    <ChevronLeft className="w-8 h-8" />
-                </button>
-            )}
-
-            {showRightArrow && (
-                <button
-                    onClick={() => scroll('right')}
-                    className="absolute right-0 top-[55%] -translate-y-1/2 z-30 p-3 bg-black/50 backdrop-blur-sm border border-white/10 rounded-full hover:bg-emerald-600 hover:text-white hover:border-emerald-500 text-white opacity-0 group-hover/row:opacity-100 transition-all duration-300 hidden md:block"
-                >
-                    <ChevronRight className="w-8 h-8" />
-                </button>
-            )}
-
-            {/* Horizontal Scroll Container */}
-            <div
-                ref={rowRef}
-                onScroll={checkScroll}
-                className="flex gap-4 overflow-x-auto pb-8 scrollbar-hide snap-x px-1 -mx-1"
-                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-            >
-                {items.map((item) => (
-                    <div key={item._id} className="flex-none w-[200px] md:w-[260px] snap-start">
-                        <EpisodeCard signal={item} />
+                {/* ROW 2: BROADCAST SERIES */}
+                <section>
+                    <div className="flex items-center gap-4 mb-8">
+                        <div className="h-px flex-1 bg-white/10" />
+                        <h2 className="font-mono text-xs text-amber-500 uppercase tracking-[0.2em]">
+                            Broadcast Series
+                        </h2>
+                        <div className="h-px flex-1 bg-white/10" />
                     </div>
-                ))}
 
-                {/* Pad end of list */}
-                <div className="flex-none w-12" />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+                        {series.map((s) => (
+                            <Link
+                                key={s._id}
+                                href={`/sanctuary/library/${s.slug}`}
+                                className="group relative block aspect-[2/3] bg-slate-900 rounded-lg overflow-hidden border border-white/5 transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl hover:shadow-emerald-500/20 hover:border-amber-500/30"
+                            >
+                                {s.coverImage ? (
+                                    <img
+                                        src={s.coverImage}
+                                        alt={s.title}
+                                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 opacity-60 group-hover:opacity-100"
+                                    />
+                                ) : (
+                                    <div className="absolute inset-0 flex items-center justify-center bg-slate-800">
+                                        <div className="absolute inset-0 bg-[url('https://res.cloudinary.com/dptqxjhb8/image/upload/v1735258900/static_noise_placeholder.png')] opacity-20 mix-blend-overlay" />
+                                        <span className="text-slate-600 font-mono text-xs relative z-10">NO SIGNAL</span>
+                                    </div>
+                                )}
+
+                                <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-80 group-hover:opacity-60 transition-opacity" />
+
+                                <div className="absolute inset-0 p-6 flex flex-col justify-end transform translate-y-2 group-hover:translate-y-0 transition-transform">
+                                    <h2 className="text-2xl font-serif font-bold text-white mb-2 leading-tight">
+                                        {s.title}
+                                    </h2>
+
+                                    {/* Metadata Label */}
+                                    <div className="font-mono text-[10px] text-amber-500/80 mb-3 tracking-widest uppercase">
+                                        {s.chapterCount ? `${s.chapterCount} CHAPTERS RECOVERED` : 'SIGNAL TRACE ACTIVE'}
+                                    </div>
+
+                                    <div className="h-0 group-hover:h-auto overflow-hidden opacity-0 group-hover:opacity-100 transition-all duration-500 delay-100">
+                                        <p className="text-xs text-slate-300 line-clamp-3 mb-4">
+                                            {s.description}
+                                        </p>
+                                        <span className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-amber-400">
+                                            <Play className="w-3 h-3 fill-current" />
+                                            Enter Series
+                                        </span>
+                                    </div>
+                                </div>
+                            </Link>
+                        ))}
+                        {series.length === 0 && (
+                            <div className="col-span-full text-center py-12 border border-dashed border-white/10 rounded-lg">
+                                <span className="text-slate-600 font-mono text-xs">NO SERIES BROADCASTING</span>
+                            </div>
+                        )}
+                    </div>
+                </section>
             </div>
         </div>
     );

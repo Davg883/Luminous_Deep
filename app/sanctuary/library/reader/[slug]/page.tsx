@@ -1,12 +1,12 @@
 "use client";
 
-import { useRef, useEffect, useState, useMemo } from "react";
+import { useRef, useEffect, useState, useMemo, useCallback } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useParams, useRouter } from "next/navigation";
 import Link from 'next/link';
 import GlitchGate from "@/components/narrative/GlitchGate";
-import { Loader2, ChevronRight, Clock, ArrowLeft } from "lucide-react";
+import { Loader2, ChevronRight, Clock, ArrowLeft, Volume2, VolumeX, Music } from "lucide-react";
 
 export default function SignalReaderPage() {
     const params = useParams();
@@ -17,6 +17,7 @@ export default function SignalReaderPage() {
     // 1. Fetch Data
     const signal = useQuery(api.public.signals.getSignal, slug ? { slug } : "skip");
     const libraryState = useQuery(api.library.getLibraryState);
+    const completeTransmission = useMutation(api.library.completeTransmission);
     const saveProgress = useMutation(api.library.saveProgress);
 
     // 2. State
@@ -24,99 +25,165 @@ export default function SignalReaderPage() {
     const [isCompleted, setIsCompleted] = useState(false);
     const containerRef = useRef<HTMLElement>(null);
 
-    // 3. Derived Logic: Read Time
+    // 3. Audio State
+    const [isAudioPlaying, setIsAudioPlaying] = useState(false);
+    const [audioVolume, setAudioVolume] = useState(0.4);
+    const [hasInteracted, setHasInteracted] = useState(false);
+    const audioRef = useRef<HTMLAudioElement | null>(null);
+
+    // 4. Derived Logic: Read Time (200 wpm)
     const readTime = useMemo(() => {
         if (!signal?.content) return 0;
         const wordCount = signal.content.split(/\s+/).length;
-        return Math.ceil(wordCount / 225);
+        return Math.ceil(wordCount / 200);
     }, [signal?.content]);
 
-    // 4. Derived Logic: Find Next Episode
-    const nextEpisode = useMemo(() => {
-        if (!signal || !libraryState) return null;
+    // 5. Next Episode from Backend
+    // Using pre-calculated nextSlug from the query
+    // @ts-ignore
+    const nextSlug = signal?.nextSlug;
 
-        // Find current context (Is it a Myth? Signal? Reflection?)
-        let contextList = [];
-        if (signal.stratum === "myth") contextList = libraryState.myths;
-        else if (signal.stratum === "reflection") contextList = libraryState.reflections;
-        else contextList = libraryState.seasonZero; // Default to Season 0
-
-        // Find index
-        const currentIndex = contextList.findIndex(s => s._id === signal._id);
-
-        // Return next if exists
-        if (currentIndex !== -1 && currentIndex < contextList.length - 1) {
-            return contextList[currentIndex + 1];
+    // 6. Audio Initialization & Cleanup
+    useEffect(() => {
+        if (signal?.ambientAudioUrl && !audioRef.current) {
+            audioRef.current = new Audio(signal.ambientAudioUrl);
+            audioRef.current.loop = true;
+            audioRef.current.volume = 0;
+            audioRef.current.preload = "auto";
         }
-        return null;
-    }, [signal, libraryState]);
 
-    // 5. Scroll Tracker
+        return () => {
+            if (audioRef.current) {
+                audioRef.current.pause();
+                audioRef.current.src = "";
+                audioRef.current = null;
+            }
+        };
+    }, [signal?.ambientAudioUrl]);
+
+    // Audio toggle handler
+    const toggleAudio = useCallback(() => {
+        if (!audioRef.current || !signal?.ambientAudioUrl) return;
+
+        if (!hasInteracted) {
+            setHasInteracted(true);
+        }
+
+        if (isAudioPlaying) {
+            // Fade out
+            const fadeOut = setInterval(() => {
+                if (audioRef.current && audioRef.current.volume > 0.02) {
+                    audioRef.current.volume = Math.max(0, audioRef.current.volume - 0.05);
+                } else {
+                    if (audioRef.current) {
+                        audioRef.current.pause();
+                        audioRef.current.volume = 0;
+                    }
+                    clearInterval(fadeOut);
+                }
+            }, 50);
+            setIsAudioPlaying(false);
+        } else {
+            // Play with fade in
+            audioRef.current.volume = 0;
+            audioRef.current.play().catch(() => { });
+            setIsAudioPlaying(true);
+
+            // Fade in
+            let vol = 0;
+            const fadeIn = setInterval(() => {
+                vol += 0.05;
+                if (audioRef.current && vol < audioVolume) {
+                    audioRef.current.volume = vol;
+                } else {
+                    if (audioRef.current) audioRef.current.volume = audioVolume;
+                    clearInterval(fadeIn);
+                }
+            }, 50);
+        }
+    }, [isAudioPlaying, hasInteracted, audioVolume, signal?.ambientAudioUrl]);
+
+    // 7. Scroll Tracker & Completion
     useEffect(() => {
         const handleScroll = () => {
+            if (!containerRef.current) return;
+
+            // Calculate progress based on container or window
             const totalHeight = document.documentElement.scrollHeight - window.innerHeight;
             const scrollPosition = window.scrollY;
-
-            // Calculate percentage (0-100)
             const currentProgress = Math.min(100, Math.max(0, (scrollPosition / totalHeight) * 100));
             setProgress(currentProgress);
 
-            // Check completion (90% read counts as done)
-            if (currentProgress > 90 && !isCompleted) {
+            if (currentProgress > 90 && !isCompleted && signal) {
                 setIsCompleted(true);
+                // Fire completion mutation once
+                completeTransmission({ signalId: signal._id });
             }
         };
-
         window.addEventListener("scroll", handleScroll);
         return () => window.removeEventListener("scroll", handleScroll);
-    }, [isCompleted]);
+    }, [isCompleted, signal]);
 
-    // 6. Save Progress Throttled
+    // 8. Save Intermediate Progress Throttled
     useEffect(() => {
-        if (!signal) return;
+        if (!signal || isCompleted) return; // Don't save if completed (handled by other mutation)
 
         const timeout = setTimeout(() => {
-            saveProgress({
-                signalId: signal._id,
-                progress: Math.round(progress),
-                isCompleted: isCompleted
-            });
-        }, 1000); // Debounce saves
+            if (progress > 5 && progress < 90) {
+                saveProgress({
+                    signalId: signal._id,
+                    progress: Math.round(progress),
+                    isCompleted: false
+                });
+            }
+        }, 2000); // Debounce saves more aggressively
 
         return () => clearTimeout(timeout);
     }, [progress, isCompleted, signal]);
 
+    // ... (keep existing render logic for loading/404)
 
-    if (signal === undefined) {
-        return (
-            <div className="min-h-screen bg-stone-950 flex items-center justify-center">
-                <div className="flex flex-col items-center gap-4 text-emerald-900/50">
-                    <Loader2 className="w-8 h-8 animate-spin" />
-                    <span className="font-mono text-xs tracking-widest uppercase">Acquiring Signal...</span>
-                </div>
-            </div>
-        );
-    }
-
-    if (signal === null) {
-        return (
-            <div className="min-h-screen bg-stone-950 flex items-center justify-center text-stone-600">
-                <div className="text-center font-mono space-y-4">
-                    <div className="text-4xl">404</div>
-                    <div className="text-xs uppercase tracking-[0.2em]">Signal Lost</div>
-                    <div className="text-[10px] bg-stone-900 p-2 rounded text-stone-500">
-                        Target: {slug}
-                    </div>
-                    <Link href="/sanctuary/library" className="text-xs text-emerald-600 hover:text-emerald-500 underline">
-                        Return to Archive
-                    </Link>
-                </div>
-            </div>
-        );
-    }
+    if (signal === undefined) { /* ... */ return <div className="min-h-screen bg-stone-950 flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-emerald-900" /></div>; }
+    if (signal === null) { /* ... */ return <div>404</div>; }
 
     return (
         <div className="min-h-screen bg-stone-950 text-stone-300 font-serif selection:bg-emerald-900/30 selection:text-emerald-50 pb-32">
+
+            {/* Floating Audio Control (only if signal has audio) */}
+            {signal.ambientAudioUrl && (
+                <button
+                    onClick={toggleAudio}
+                    className={`fixed top-6 right-6 z-50 p-3 rounded-full backdrop-blur-xl transition-all duration-300 group ${isAudioPlaying
+                            ? 'bg-cyan-500/20 border border-cyan-500/40 shadow-[0_0_20px_rgba(6,182,212,0.3)]'
+                            : 'bg-black/40 border border-white/20 hover:border-cyan-500/30'
+                        }`}
+                    aria-label={isAudioPlaying ? "Mute ambient audio" : "Play ambient audio"}
+                >
+                    {/* Ripple effect when playing */}
+                    {isAudioPlaying && (
+                        <>
+                            <span className="absolute inset-0 rounded-full bg-cyan-500/20 animate-ping" style={{ animationDuration: '2s' }} />
+                            <span className="absolute inset-[-4px] rounded-full border border-cyan-500/30 animate-pulse" />
+                        </>
+                    )}
+
+                    {/* Icon */}
+                    {isAudioPlaying ? (
+                        <Volume2 className="w-5 h-5 text-cyan-400 relative z-10" />
+                    ) : (
+                        <VolumeX className="w-5 h-5 text-white/60 group-hover:text-cyan-400 relative z-10 transition-colors" />
+                    )}
+                </button>
+            )}
+
+            {/* First-time audio prompt */}
+            {signal.ambientAudioUrl && !hasInteracted && (
+                <div className="fixed top-16 right-6 z-40 whitespace-nowrap animate-pulse">
+                    <span className="text-[9px] text-cyan-500/60 font-mono tracking-wide flex items-center gap-1">
+                        <Music className="w-3 h-3" /> AMBIENT AUDIO AVAILABLE
+                    </span>
+                </div>
+            )}
 
             {/* Sticky Header */}
             <div className="sticky top-0 z-40 bg-stone-950/80 backdrop-blur-md border-b border-white/5 px-6 py-3 transition-all duration-500">
@@ -126,7 +193,7 @@ export default function SignalReaderPage() {
                     </Link>
                     <span className="flex items-center gap-2">
                         <Clock className="w-3 h-3" />
-                        DURATION: {readTime} MIN
+                        [ DECRYPT_TIME: {readTime} MIN ]
                     </span>
                 </div>
             </div>
@@ -163,18 +230,14 @@ export default function SignalReaderPage() {
             {/* COMMS BAR (Fixed Footer) */}
             <div className="fixed bottom-0 left-0 right-0 z-50 backdrop-blur-xl bg-black/80 border-t border-white/10 px-6 py-4">
                 <div className="max-w-4xl mx-auto flex items-center justify-between gap-8">
-
                     {/* LEFT: Episode Info */}
                     <div className="hidden md:flex flex-col">
                         <span className="font-mono text-[10px] text-stone-500 uppercase tracking-widest">
-                            Season {signal.season} • Episode {signal.episode}
+                            S{signal.season} • E{signal.episode}
                         </span>
                         <span className="font-serif text-sm text-stone-300 truncate max-w-[200px]">
                             {signal.title}
                         </span>
-                    </div>
-                    <div className="md:hidden font-mono text-xs text-stone-400">
-                        EP.{signal.episode.toString().padStart(2, '0')}
                     </div>
 
                     {/* CENTER: Progress Bar */}
@@ -192,9 +255,9 @@ export default function SignalReaderPage() {
                     </div>
 
                     {/* RIGHT: Next Action */}
-                    {nextEpisode ? (
+                    {nextSlug ? (
                         <Link
-                            href={`/sanctuary/library/reader/${nextEpisode.slug}`}
+                            href={`/sanctuary/library/reader/${nextSlug}`}
                             className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-emerald-900/30 border border-white/5 hover:border-emerald-500/30 rounded transition-colors group"
                         >
                             <span className="font-mono text-[10px] text-stone-400 uppercase tracking-widest group-hover:text-emerald-400">

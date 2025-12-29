@@ -134,6 +134,8 @@ export default defineSchema({
         biography: v.optional(v.string()), // Long-form dossier context
         philosophy: v.optional(v.string()), // Core belief system / operational stance
         glimpseUrl: v.optional(v.string()), // Ghost-in-the-glass overlay asset
+        // Agent Constitution — Mandate Assignment
+        activeMandateId: v.optional(v.id("agent_mandates")), // Current governing mandate
         isActive: v.boolean(),
         createdAt: v.number(),
         // Synced RAG Embedding
@@ -210,9 +212,24 @@ export default defineSchema({
         status: v.union(v.literal("draft"), v.literal("published")),
     }).index("by_slug", ["slug"]),
 
+    // ═══════════════════════════════════════════════════════════════
+    // CANONICAL OBJECT #9: SERIES (The Container) - See 'Final Alignment'
+    // ═══════════════════════════════════════════════════════════════
+    series: defineTable({
+        title: v.string(),         // e.g., "The Silent Archive"
+        slug: v.string(),          // e.g., "the-silent-archive"
+        description: v.string(),   // Auto-generated synopsis
+        coverImage: v.string(),    // Title Art URL
+        tags: v.array(v.string()), // ["Sci-Fi", "Mystery"]
+        status: v.string(),        // "Published", "Archived"
+        // AI Prompts
+        imagePrompt: v.optional(v.string()),
+    }).index("by_slug", ["slug"]),
+
     signals: defineTable({
         title: v.string(),            // e.g., "Transmission 001: The Bunker"
         slug: v.string(),             // e.g., "001-the-bunker"
+        seriesId: v.optional(v.string()), // v.id("series") - Downgraded to fix deployment loop
         season: v.number(),           // 0
         episode: v.number(),          // 1
         content: v.string(),          // The full markdown text
@@ -222,6 +239,7 @@ export default defineSchema({
         // Phase 1 Upgrade: Progressive Disclosure Fields
         subtitle: v.optional(v.string()),
         coverImage: v.optional(v.string()), // URL
+        titleImage: v.optional(v.string()), // Title Art / Logo URL
         summaryShort: v.optional(v.string()), // For card
         summaryLong: v.optional(v.string()), // For detail view
         duration: v.optional(v.string()), // e.g. '18 min read'
@@ -237,9 +255,12 @@ export default defineSchema({
             v.literal("eleanor"),
             v.literal("palimpsaest")
         )),
+        // Ambient Audio (for reading experience)
+        ambientAudioUrl: v.optional(v.string()), // Signal-specific soundscape
     }).index("by_season_episode", ["season", "episode"])
         .index("by_slug", ["slug"])
-        .index("by_stratum", ["stratum"]),
+        .index("by_stratum", ["stratum"])
+        .index("by_series", ["seriesId"]),
 
     user_progress: defineTable({
         userId: v.string(), // Clerk ID or similar
@@ -354,4 +375,41 @@ export default defineSchema({
         version: v.number(),
         lockedAt: v.optional(v.number()),
     }).index("by_slug", ["slug"]),
+
+    // ═══════════════════════════════════════════════════════════════
+    // AGENT MANDATES — Scoped Canon / Agent Constitutions (Level 1)
+    // Each agent inherits a mandate that defines how it perceives,
+    // reasons, and responds. Mandates are versioned, immutable, and
+    // tamper-evident. Authority, not content.
+    // ═══════════════════════════════════════════════════════════════
+    agent_mandates: defineTable({
+        agentId: v.string(),              // e.g. "julian", "thea", "eleanor"
+        title: v.string(),                // e.g. "Julian Operational Mandate"
+        slug: v.string(),                 // Scoped to agent (lowercase, hyphen-separated)
+        content: v.string(),              // Markdown — the instruction set
+        version: v.number(),
+
+        // Chain of custody
+        previousVersionId: v.optional(v.id("agent_mandates")),
+        supersededById: v.optional(v.id("agent_mandates")), // Points forward to replacement
+
+        // Lifecycle
+        status: v.union(v.literal("draft"), v.literal("active"), v.literal("retired")),
+        createdAt: v.number(),
+        createdBy: v.string(),
+        publishedAt: v.optional(v.number()),
+        publishedBy: v.optional(v.string()),
+        retiredAt: v.optional(v.number()),
+        retiredBy: v.optional(v.string()),
+        retireReason: v.optional(v.string()),
+
+        // Integrity (tamper-evident)
+        checksum: v.string(),             // SHA-256, mandatory
+        hashAlgo: v.string(),             // e.g. "sha256" — future-proof
+        contentLength: v.number(),        // Quick sanity check
+    })
+        .index("by_agent", ["agentId"])
+        .index("by_agent_slug", ["agentId", "slug"])
+        .index("by_agent_status", ["agentId", "status"])
+        .index("by_status", ["status"]),
 });

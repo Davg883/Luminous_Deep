@@ -23,6 +23,7 @@ export const publishSignal = mutation({
         glitchPoint: v.optional(v.number()),
         // Cover Art Fields
         coverImage: v.optional(v.string()),
+        titleImage: v.optional(v.string()),
         subtitle: v.optional(v.string()),
         // Narrative Governance
         stratum: v.optional(v.union(
@@ -30,11 +31,14 @@ export const publishSignal = mutation({
             v.literal("myth"),
             v.literal("reflection")
         )),
+        seriesId: v.optional(v.string()), // v.id("series") replacement for deploy fix
         voice: v.optional(v.union(
             v.literal("thea"),
             v.literal("eleanor"),
             v.literal("palimpsaest")
         )),
+        // Ambient Audio
+        ambientAudioUrl: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
         const payload = {
@@ -48,10 +52,14 @@ export const publishSignal = mutation({
             publishedAt: Date.now(),
             // Cover Art
             coverImage: args.coverImage,
+            titleImage: args.titleImage,
             subtitle: args.subtitle,
-            // Narrative Governance: Default stratum to "signal" if not provided
+            // Narrative Governance
             stratum: args.stratum ?? "signal",
+            seriesId: args.seriesId as any,
             voice: args.voice,
+            // Ambient Audio
+            ambientAudioUrl: args.ambientAudioUrl,
         };
 
         if (args.id) {

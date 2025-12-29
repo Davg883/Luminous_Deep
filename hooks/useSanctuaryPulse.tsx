@@ -7,7 +7,7 @@ import { useAudioSovereignSafe } from "@/components/narrative/AudioSovereign";
  * useSanctuaryPulse
  * 
  * A hook that provides a ref to attach to any HTML element.
- * The element will automatically pulse with the 40Hz audio amplitude,
+ * The element will pulse with a breathing animation when audio is playing,
  * creating a "breathing sanctuary" effect.
  * 
  * Usage:
@@ -19,7 +19,7 @@ import { useAudioSovereignSafe } from "@/components/narrative/AudioSovereign";
  *     ref={pulseRef} 
  *     className="sanctuary-breathing sanctuary-breathing-cyan"
  *   >
- *     This card breathes with the 40Hz beat
+ *     This card breathes when audio plays
  *   </div>
  * );
  * ```
@@ -32,24 +32,17 @@ export function useSanctuaryPulse<T extends HTMLElement>() {
         const element = elementRef.current;
         if (!element || !audio) return;
 
-        // Update CSS custom property on each frame
+        // Use CSS animation when playing, controlled via custom property
         const updatePulse = () => {
-            element.style.setProperty("--pulse-intensity", audio.lowFrequencyAmplitude.toString());
+            const intensity = audio.isPlaying && !audio.isMuted ? "1" : "0";
+            element.style.setProperty("--pulse-intensity", intensity);
         };
 
-        // Use requestAnimationFrame for smooth updates
-        let animationFrame: number;
-        const animate = () => {
-            updatePulse();
-            animationFrame = requestAnimationFrame(animate);
-        };
+        updatePulse();
 
-        animate();
-
-        return () => {
-            cancelAnimationFrame(animationFrame);
-        };
-    }, [audio]);
+        // No need for animation frame since we're using CSS animations
+        // Just update when state changes
+    }, [audio?.isPlaying, audio?.isMuted]);
 
     return elementRef;
 }
@@ -57,15 +50,17 @@ export function useSanctuaryPulse<T extends HTMLElement>() {
 /**
  * useSanctuaryGlow
  * 
- * Returns the current 40Hz amplitude value (0-1) for custom visual effects.
+ * Returns the audio state for custom visual effects.
  * 
  * Usage:
  * ```tsx
- * const { amplitude, isPlaying } = useSanctuaryGlow();
+ * const { isPlaying, isMuted } = useSanctuaryGlow();
  * 
  * return (
  *   <div style={{ 
- *     boxShadow: `0 0 ${30 * amplitude}px rgba(14, 165, 233, ${amplitude})` 
+ *     boxShadow: isPlaying && !isMuted 
+ *       ? '0 0 30px rgba(14, 165, 233, 0.5)' 
+ *       : 'none' 
  *   }}>
  *     Custom glow effect
  *   </div>
@@ -76,11 +71,11 @@ export function useSanctuaryGlow() {
     const audio = useAudioSovereignSafe();
 
     return {
-        amplitude: audio?.lowFrequencyAmplitude ?? 0,
         isPlaying: audio?.isPlaying ?? false,
         isMuted: audio?.isMuted ?? true,
         hasInteracted: audio?.hasInteracted ?? false,
         currentRoom: audio?.currentRoom ?? "default",
+        volume: audio?.volume ?? 0,
     };
 }
 

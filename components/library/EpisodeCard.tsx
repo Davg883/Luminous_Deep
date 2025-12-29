@@ -26,10 +26,26 @@ export default function EpisodeCard({ signal }: EpisodeCardProps) {
                 }}
             >
                 {/* COVER IMAGE */}
-                <div
-                    className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
-                    style={{ backgroundImage: `url(${signal.coverImage || '/placeholder-signal.jpg'})` }}
-                />
+                {signal.coverImage ? (
+                    <img
+                        src={signal.coverImage}
+                        alt={signal.title}
+                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    />
+                ) : (
+                    <div className="absolute inset-0 bg-stone-950 flex items-center justify-center">
+                        <svg className="absolute inset-0 w-full h-full opacity-20" xmlns="http://www.w3.org/2000/svg">
+                            <filter id="noiseFilter">
+                                <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" stitchTiles="stitch" />
+                            </filter>
+                            <rect width="100%" height="100%" filter="url(#noiseFilter)" />
+                        </svg>
+                        <span className="relative z-10 font-mono text-[10px] text-emerald-900/60 uppercase tracking-widest">
+                            SYSTEM STATIC
+                        </span>
+                        <div className="absolute inset-0 bg-gradient-to-t from-stone-900 via-transparent to-transparent opacity-50" />
+                    </div>
+                )}
 
                 {/* DARK GRADIENT OVERLAY (Always visible but deepens on hover) */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent opacity-80 group-hover:opacity-95 transition-opacity duration-300" />

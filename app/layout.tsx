@@ -36,7 +36,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} ${libreBaskerville.variable} ${jetbrainsMono.variable} antialiased`}>
+      <body className={`${inter.variable} ${libreBaskerville.variable} ${jetbrainsMono.variable} antialiased`} suppressHydrationWarning>
         <ConvexClientProvider>
           <AudioSovereignProvider>
             <AudioSovereignControl />

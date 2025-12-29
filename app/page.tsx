@@ -6,14 +6,14 @@ import { api } from "@/convex/_generated/api";
 import SceneStage from "@/components/narrative/SceneStage";
 import Atmosphere from "@/components/layout/Atmosphere";
 import RoomSelector from "@/components/narrative/RoomSelector";
-import { useAmbient } from "@/components/narrative/AmbientContext";
+import { useAudioSovereign } from "@/components/narrative/AudioSovereign";
 import Link from "next/link";
 import { Volume2 } from "lucide-react";
 import clsx from "clsx";
 
 export default function Home() {
     const scene = useQuery(api.public.scenes.getScene, { slug: "home" });
-    const { isMuted, activateAudio } = useAmbient();
+    const { isMuted, activateSanctuary: activateAudio } = useAudioSovereign();
     const [isRoomSelectorOpen, setIsRoomSelectorOpen] = useState(false);
 
     // Handle Escape key to close room selector
